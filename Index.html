@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de Provas IA & Dashboard</title>
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    /* VARIABLES & CORE DESIGN SYSTEM */
+    :root {
+      --bg-main: #0f172a;
+      --bg-card: rgba(30, 41, 59, 0.7);
+      --bg-input: #1e293b;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-glow: rgba(99, 102, 241, 0.35);
+      --success: #10b981;
+      --success-hover: #059669;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --font-outfit: 'Outfit', sans-serif;
+      --font-inter: 'Inter', sans-serif;
+      --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-inter);
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 40%);
+    }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-main);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    /* GLASS CARD BASE STYLE */
+    .glass-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+
+    /* LOGIN CONTAINER */
+    #login-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-grow: 1;
+      padding: 20px;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 420px;
+      padding: 40px 30px;
+      text-align: center;
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    .app-logo {
+      font-family: var(--font-outfit);
+      font-size: 2.2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #a5b4fc 0%, var(--primary) 50%, #34d399 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+      letter-spacing: -1px;
+    }
+
+    .login-subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 30px;
+      line-height: 1.5;
+    }
+
+    /* APP CONTAINER (MAIN WORKSPACE) */
+    #app-container {
+      display: none;
+      flex-direction: column;
+      flex-grow: 1;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    /* HEADER / NAVIGATION */
+    header {
+      border-bottom: 1px solid var(--border-color);
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-logo span.logo-text {
+      font-family: var(--font-outfit);
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #a5b4fc 0%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-logo span.badge {
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #a5b4fc;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    nav {
+      display: flex;
+      gap: 5px;
+    }
+
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: var(--font-inter);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: var(--transition-smooth);
+    }
+
+    .nav-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .nav-btn.active {
+      color: #fff;
+      background: var(--primary);
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+
+    .logout-btn {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: #fb7185;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: var(--transition-smooth);
+    }
+
+    .logout-btn:hover {
+      background: var(--danger);
+      color: white;
+    }
+
+    /* MAIN CONTENT VIEWPORTS */
+    main {
+      flex-grow: 1;
+      padding: 30px;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .app-view {
+      display: none;
+      animation: tabSlide 0.3s ease-out;
+    }
+
+    .app-view.active {
+      display: block;
+    }
+
+    /* FORM ELEMENTS & CONTROLS */
+    .form-group {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-family: var(--font-outfit);
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-main);
+      letter-spacing: 0.2px;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    textarea,
+    select {
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-family: var(--font-inter);
+      font-size: 0.95rem;
+      transition: var(--transition-smooth);
+      outline: none;
+      width: 100%;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 150px;
+    }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
+
+    /* BUTTONS */
+    .btn {
+      background: var(--primary);
+      border: none;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-family: var(--font-outfit);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn:disabled {
+      background: #334155;
+      color: var(--text-muted);
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      box-shadow: none;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: none;
+      transform: translateY(-1px);
+    }
+
+    /* VIEW: GERADOR DE PROVA */
+    .generator-layout {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 30px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .generator-layout {
+        grid-template-columns: 1fr;
+      }
+      .input-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card-padding {
+      padding: 30px;
+    }
+
+    .view-title {
+      font-family: var(--font-outfit);
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+
+    .helper-card {
+      background: rgba(99, 102, 241, 0.05);
+      border-left: 4px solid var(--primary);
+      padding: 20px;
+      border-radius: 0 12px 12px 0;
+      margin-bottom: 25px;
+    }
+
+    .helper-card h4 {
+      font-family: var(--font-outfit);
+      font-size: 1.05rem;
+      margin-bottom: 6px;
+      color: #a5b4fc;
+    }
+
+    .helper-card p {
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: var(--text-muted);
+    }
+
+    .tips-list {
+      margin-top: 15px;
+      padding-left: 20px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* GENERATOR RESULT VIEW */
+    .result-box {
+      display: none;
+      animation: scaleIn 0.4s ease-out;
+      text-align: center;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 40px;
+    }
+
+    .success-icon {
+      width: 70px;
+      height: 70px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 2px solid var(--success);
+      color: var(--success);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      margin: 0 auto 20px auto;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+    }
+
+    .result-title {
+      font-family: var(--font-outfit);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+
+    .result-desc {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 25px;
+    }
+
+    .link-display-wrapper {
+      display: flex;
+      gap: 10px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 8px 8px 8px 16px;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .link-display-wrapper input {
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-size: 0.9rem;
+      flex-grow: 1;
+      outline: none;
+      text-overflow: ellipsis;
+    }
+
+    .actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    @media (max-width: 500px) {
+      .actions-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .btn-whatsapp {
+      background: #25d366;
+      box-shadow: 0 4px 12px rgba(37, 211, 102, 0.25);
+    }
+    .btn-whatsapp:hover {
+      background: #20ba5a;
+      box-shadow: 0 6px 18px rgba(37, 211, 102, 0.35);
+    }
+
+    /* VIEW: DASHBOARD (HISTÓRICO & NOTAS) */
+    .dashboard-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 25px;
+      min-height: 500px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .dashboard-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* FORM LIST SIDEBAR */
+    .form-sidebar {
+      max-height: 600px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 15px;
+    }
+
+    .sidebar-title {
+      font-family: var(--font-outfit);
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 5px;
+      padding-left: 5px;
+    }
+
+    .form-list-item {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 15px;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      text-align: left;
+      position: relative;
+    }
+
+    .form-list-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateX(3px);
+    }
+
+    .form-list-item.active {
+      background: rgba(99, 102, 241, 0.08);
+      border-color: var(--primary);
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.15);
+    }
+
+    .form-item-title {
+      font-family: var(--font-outfit);
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .form-item-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .no-forms-msg {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    /* DETAIL VIEW */
+    .dashboard-detail {
+      padding: 30px;
+      min-height: 400px;
+    }
+
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+      margin-bottom: 25px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .detail-header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+
+    .detail-title-group {
+      flex-grow: 1;
+    }
+
+    .detail-title {
+      font-family: var(--font-outfit);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .detail-links {
+      display: flex;
+      gap: 12px;
+      font-size: 0.8rem;
+      margin-top: 8px;
+    }
+
+    .detail-link-btn {
+      color: #818cf8;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: var(--transition-smooth);
+    }
+
+    .detail-link-btn:hover {
+      color: #a5b4fc;
+      text-decoration: underline;
+    }
+
+    /* STAT CARDS */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 15px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-val {
+      font-family: var(--font-outfit);
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    .stat-lbl {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .stat-card.alert-card {
+      border-color: rgba(239, 68, 68, 0.2);
+      background: rgba(239, 68, 68, 0.02);
+    }
+    .stat-card.alert-card .stat-val {
+      color: #fb7185;
+    }
+
+    /* RESPONSES TABLE */
+    .table-container {
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background-color: rgba(255, 255, 255, 0.03);
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    td {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    .score-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: 4px 10px;
+      border-radius: 8px;
+    }
+
+    .score-badge.pass {
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .score-badge.fail {
+      background: rgba(239, 68, 68, 0.12);
+      color: #fb7185;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+
+    .score-badge.warning {
+      background: rgba(245, 158, 11, 0.12);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-dot.pass { background-color: var(--success); }
+    .status-dot.fail { background-color: var(--danger); }
+    .status-dot.warning { background-color: var(--warning); }
+
+    .no-submissions-msg {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* VIEW: CONFIGURAÇÕES */
+    .config-layout {
+      max-width: 650px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+
+    .config-card {
+      padding: 30px;
+    }
+
+    .card-section-title {
+      font-family: var(--font-outfit);
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+
+    .masked-key-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--success);
+      margin-top: 6px;
+      font-weight: 500;
+    }
+
+    .masked-key-status.empty {
+      color: var(--warning);
+    }
+
+    /* MODAL LOADING / FEEDBACK */
+    #loading-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.85);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 20px;
+      backdrop-filter: blur(5px);
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(99, 102, 241, 0.1);
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+    }
+
+    .loading-text {
+      font-family: var(--font-outfit);
+      font-size: 1.15rem;
+      color: #fff;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+
+    /* TOAST FLOATING ALERT */
+    .toast-container {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 2000;
+    }
+
+    .toast {
+      background: #1e293b;
+      border-left: 4px solid var(--primary);
+      color: #fff;
+      padding: 14px 22px;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      min-width: 280px;
+      max-width: 400px;
+    }
+
+    .toast.success {
+      border-left-color: var(--success);
+    }
+
+    .toast.error {
+      border-left-color: var(--danger);
+    }
+
+    /* ANIMATIONS */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes tabSlide {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes toastSlideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LOADING OVERLAY -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loading-message">Processando...</div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- VIEWPORT 1: LOGIN -->
+  <div id="login-container">
+    <div class="glass-card login-box">
+      <div class="app-logo">✨ Multiplicadora AI</div>
+      <div class="login-subtitle">Sistema inteligente para geração de avaliações corporativas e análise de performance.</div>
+      
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group" style="text-align: left;">
+          <label for="login-pass">Senha de Acesso</label>
+          <input type="password" id="login-pass" placeholder="Digite a senha do sistema" required autofocus>
+        </div>
+        <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">
+          Entrar no Sistema
+        </button>
+      </form>
+      <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 20px;">
+        Primeiro acesso? A senha padrão é <code>multiplicadora123</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEWPORT 2: SYSTEM WORKSPACE -->
+  <div id="app-container">
+    <header>
+      <div class="header-logo">
+        <span class="logo-text">✨ Multiplicadora AI</span>
+        <span class="badge">Forms</span>
+      </div>
+      <nav>
+        <button class="nav-btn active" onclick="switchTab('gerador-tab', this)">
+          📝 Gerador de Provas
+        </button>
+        <button class="nav-btn" onclick="switchTab('dashboard-tab', this); loadDashboardData();">
+          📊 Histórico & Notas
+        </button>
+        <button class="nav-btn" onclick="switchTab('config-tab', this); loadConfigData();">
+          ⚙️ Configurações
+        </button>
+      </nav>
+      <button class="logout-btn" onclick="handleLogout()">Sair</button>
+    </header>
+
+    <main>
+      
+      <!-- TAB 1: GERADOR DE AVALIAÇÃO -->
+      <div id="gerador-tab" class="app-view active">
+        <!-- FORMULARIO DE ENTRADA -->
+        <div id="generator-input-view" class="generator-layout">
+          
+          <div class="glass-card card-padding">
+            <h2 class="view-title">📝 Nova Avaliação</h2>
+            
+            <form id="generator-form" onsubmit="handleGenerate(event)">
+              <div class="form-group">
+                <label for="quiz-title">Título da Avaliação</label>
+                <input type="text" id="quiz-title" placeholder="Ex: Treinamento de Vendas - Varejo Junho" required>
+              </div>
+
+              <div class="input-row">
+                <div class="form-group">
+                  <label for="quiz-questions-count">Quantidade de Questões</label>
+                  <select id="quiz-questions-count">
+                    <option value="10" selected>10 perguntas (Recomendado)</option>
+                    <option value="12">12 perguntas</option>
+                    <option value="15">15 perguntas</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="quiz-grade-min">Nota de Corte para Alerta</label>
+                  <select id="quiz-grade-min">
+                    <option value="60">60% de acertos</option>
+                    <option value="70" selected>70% de acertos</option>
+                    <option value="80">80% de acertos</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="quiz-content">Conteúdo do Treinamento</label>
+                <textarea id="quiz-content" placeholder="Cole aqui as apostilas, transcrições de vídeos, textos de produtos ou qualquer conteúdo que servirá como base para as perguntas geradas..." required></textarea>
+                <div style="font-size: 0.75rem; color: var(--text-muted); text-align: right;" id="char-count">0 caracteres</div>
+              </div>
+
+              <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">
+                ⚡ Criar Formulário com IA
+              </button>
+            </form>
+          </div>
+
+          <div class="glass-card card-padding" style="background: rgba(30, 41, 59, 0.4)">
+            <h3 class="view-title" style="font-size: 1.3rem;">ℹ️ Como funciona?</h3>
+            <div class="helper-card">
+              <h4>1. Cole seu Conteúdo</h4>
+              <p>Adicione textos, manuais de produtos ou resumos de treinamentos. A IA do Gemini irá absorver e analisar este conhecimento.</p>
+            </div>
+            <div class="helper-card" style="border-left-color: var(--success);">
+              <h4>2. Geração da Prova</h4>
+              <p>A IA criará dinamicamente questões de múltipla escolha com gabarito já configurado e explicações para as respostas corretas.</p>
+            </div>
+            <div class="helper-card" style="border-left-color: var(--warning);">
+              <h4>3. Compartilhe por WhatsApp</h4>
+              <p>Copie o link gerado, mande no grupo e acompanhe em tempo real as notas na aba de Histórico.</p>
+            </div>
+            
+            <ul class="tips-list">
+              <li>💡 Dica: Quanto melhor for o texto do treinamento, melhores serão as perguntas geradas.</li>
+              <li>⚡ O processo leva em média de 10 a 20 segundos para criar e publicar o formulário.</li>
+            </ul>
+          </div>
+
+        </div>
+
+        <!-- TELA DE RESULTADO APÓS SUCESSO -->
+        <div id="generator-result-view" class="glass-card result-box">
+          <div class="success-icon">✓</div>
+          <h2 class="result-title">Avaliação Publicada!</h2>
+          <p class="result-desc" id="result-text-summary">O formulário de avaliação foi criado e já está pronto para receber respostas.</p>
+          
+          <div class="form-group" style="text-align: left;">
+            <label>Link para Enviar aos Consultores (WhatsApp)</label>
+            <div class="link-display-wrapper">
+              <input type="text" id="shareable-link" readonly value="https://docs.google.com/forms/d/...">
+              <button class="btn btn-secondary" onclick="copyShareableLink()" style="padding: 6px 14px; font-size: 0.85rem; border-radius: 6px;">
+                Copiar
+              </button>
+            </div>
+          </div>
+
+          <div class="actions-grid">
+            <button class="btn btn-whatsapp" onclick="shareOnWhatsapp()">
+              Enviar via WhatsApp
+            </button>
+            <button class="btn btn-secondary" id="edit-form-btn" onclick="openGoogleFormEdit()">
+              Ver no Google Forms
+            </button>
+          </div>
+
+          <button class="btn" style="margin-top: 30px; width: 100%;" onclick="resetGenerator()">
+            Criar Outra Avaliação
+          </button>
+        </div>
+
+      </div>
+
+      <!-- TAB 2: HISTÓRICO & ACOMPANHAMENTO -->
+      <div id="dashboard-tab" class="app-view">
+        <div class="dashboard-layout">
+          
+          <!-- HISTÓRICO DE FORMS -->
+          <div class="glass-card" style="padding: 20px 10px;">
+            <div class="sidebar-title">Provas Geradas</div>
+            <div class="form-sidebar" id="active-forms-list">
+              <div class="no-forms-msg">Buscando avaliações...</div>
+            </div>
+          </div>
+
+          <!-- DETALHES DAS NOTAS DO SELECIONADO -->
+          <div class="glass-card dashboard-detail">
+            <div id="no-selected-form" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 350px; color: var(--text-muted); text-align: center;">
+              <div style="font-size: 3rem; margin-bottom: 10px;">📊</div>
+              <h3>Selecione uma avaliação na barra lateral</h3>
+              <p style="font-size: 0.85rem; margin-top: 5px;">Aqui você verá em tempo real a nota de cada consultor.</p>
+            </div>
+
+            <div id="selected-form-details" style="display: none;">
+              <div class="detail-header">
+                <div class="detail-title-group">
+                  <h3 class="detail-title" id="selected-form-title">Título da Avaliação</h3>
+                  <div class="detail-links">
+                    <a href="#" id="view-form-link" target="_blank" class="detail-link-btn">
+                      🔗 Link de Resposta
+                    </a>
+                    <a href="#" id="edit-form-link" target="_blank" class="detail-link-btn">
+                      ✏️ Editar Estrutura
+                    </a>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn btn-secondary" onclick="refreshSelectedSubmissions()" style="padding: 10px 16px; font-size: 0.85rem;">
+                    🔄 Atualizar Notas
+                  </button>
+                  <button class="btn btn-secondary" onclick="handleDeleteForm()" style="padding: 10px 16px; font-size: 0.85rem; color: #fb7185; border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.02)">
+                    Excluir
+                  </button>
+                </div>
+              </div>
+
+              <!-- STATS DASHBOARD -->
+              <div class="stats-row">
+                <div class="stat-card">
+                  <span class="stat-val" id="stat-responses">0</span>
+                  <span class="stat-lbl">Consultores Responderam</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-val" id="stat-avg-score">0%</span>
+                  <span class="stat-lbl">Média do Grupo</span>
+                </div>
+                <div class="stat-card alert-card" id="stat-alert-card">
+                  <span class="stat-val" id="stat-low-scores">0</span>
+                  <span class="stat-lbl">Em Recuperação</span>
+                </div>
+              </div>
+
+              <!-- TABLE OF RESPONSES -->
+              <div class="table-container">
+                <table id="responses-table">
+                  <thead>
+                    <tr>
+                      <th>Status</th>
+                      <th>Nome Completo</th>
+                      <th>Data/Hora</th>
+                      <th>Nota</th>
+                      <th>Aproveitamento</th>
+                    </tr>
+                  </thead>
+                  <tbody id="responses-table-body">
+                    <!-- Dinâmico -->
+                  </tbody>
+                </table>
+              </div>
+              <div id="no-responses-alert" class="no-submissions-msg" style="display: none;">
+                Nenhum consultor respondeu a esta avaliação ainda. Copie o link e envie via WhatsApp para coletar resultados!
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- TAB 3: CONFIGURAÇÕES -->
+      <div id="config-tab" class="app-view">
+        <div class="config-layout">
+          
+          <!-- GEMINI API CARD -->
+          <div class="glass-card config-card">
+            <h3 class="card-section-title">🤖 Conectividade Gemini AI</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px; line-height: 1.5;">
+              Para que a IA gere as questões do treinamento, é necessária uma chave de API do Gemini. 
+              Esta chave é salva localmente e de forma privada sob a sua conta do Google.
+            </p>
+            
+            <form onsubmit="handleSaveGeminiKey(event)">
+              <div class="form-group">
+                <label for="gemini-key">Chave de API do Gemini (API Key)</label>
+                <input type="password" id="gemini-key" placeholder="Insira a chave AIzaSy..." required>
+                <div class="masked-key-status" id="gemini-key-status">
+                  Verificando status da chave...
+                </div>
+              </div>
+              <button type="submit" class="btn" style="margin-top: 5px;">Salvar Chave API</button>
+            </form>
+          </div>
+
+          <!-- PASSWORD CARD -->
+          <div class="glass-card config-card">
+            <h3 class="card-section-title">🔑 Segurança do Painel</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px; line-height: 1.5;">
+              Altere a senha de acesso a esta interface web. Compartilhe a senha apenas com outras multiplicadoras autorizadas.
+            </p>
+            
+            <form onsubmit="handleChangePassword(event)">
+              <div class="form-group">
+                <label for="current-pass">Senha Atual</label>
+                <input type="password" id="current-pass" placeholder="Senha atual" required>
+              </div>
+              <div class="form-group">
+                <label for="new-pass">Nova Senha</label>
+                <input type="password" id="new-pass" placeholder="Nova senha (mínimo 4 caracteres)" required>
+              </div>
+              <button type="submit" class="btn">Alterar Senha</button>
+            </form>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- CORE LOGIC / JAVASCRIPT -->
+  <script>
+    // ESTADOS GLOBAIS DA APLICAÇÃO CLIENT-SIDE
+    let currentActiveFormId = null;
+    let latestGeneratedForm = null;
+
+    // Monitoramento de caracteres
+    const textarea = document.getElementById('quiz-content');
+    const charCount = document.getElementById('char-count');
+    textarea.addEventListener('input', () => {
+      charCount.textContent = `${textarea.value.length} caracteres`;
+    });
+
+    // AO CARREGAR A PÁGINA
+    window.onload = function() {
+      // Verificar sessão no sessionStorage
+      const isAuth = sessionStorage.getItem('multi_eval_auth');
+      if (isAuth === 'true') {
+        showMainApp();
+      } else {
+        showLogin();
+      }
+    };
+
+    // ALTERNAR VIEWPORTS (LOGIN VS APP PRINCIPAL)
+    function showLogin() {
+      document.getElementById('login-container').style.display = 'flex';
+      document.getElementById('app-container').style.display = 'none';
+      document.getElementById('login-pass').focus();
+    }
+
+    function showMainApp() {
+      document.getElementById('login-container').style.display = 'none';
+      document.getElementById('app-container').style.display = 'flex';
+      // Limpa dados de resultado anteriores
+      resetGenerator();
+    }
+
+    // MODAL DE CARREGAMENTO
+    function showLoading(msg) {
+      document.getElementById('loading-message').textContent = msg || 'Processando...';
+      document.getElementById('loading-overlay').style.display = 'flex';
+    }
+
+    function hideLoading() {
+      document.getElementById('loading-overlay').style.display = 'none';
+    }
+
+    // FLOATING TOASTS
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      
+      let icon = 'ℹ️';
+      if (type === 'success') icon = '✅';
+      if (type === 'error') icon = '❌';
+
+      toast.innerHTML = `<div>${icon}</div><div>${message}</div>`;
+      container.appendChild(toast);
+
+      // Remove após 4 segundos
+      setTimeout(() => {
+        toast.style.animation = 'fadeIn 0.3s reverse forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    // SUBMIT DE LOGIN
+    function handleLogin(event) {
+      event.preventDefault();
+      const pwd = document.getElementById('login-pass').value;
+      
+      showLoading('Validando acesso...');
+      
+      google.script.run
+        .withSuccessHandler(function(isValid) {
+          hideLoading();
+          if (isValid) {
+            sessionStorage.setItem('multi_eval_auth', 'true');
+            showToast('Acesso autorizado com sucesso!', 'success');
+            showMainApp();
+          } else {
+            showToast('Senha de acesso incorreta.', 'error');
+            document.getElementById('login-pass').value = '';
+            document.getElementById('login-pass').focus();
+          }
+        })
+        .withFailureHandler(function(err) {
+          hideLoading();
+          showToast('Erro de conexão: ' + err.message, 'error');
+        })
+        .checkPassword(pwd);
+    }
+
+    // LOGOUT
+    function handleLogout() {
+      sessionStorage.removeItem('multi_eval_auth');
+      showToast('Sessão encerrada.', 'success');
+      showLogin();
+      document.getElementById('login-pass').value = '';
+    }
+
+    // NAVEGAÇÃO DE ABAS
+    function switchTab(tabId, btnElement) {
+      // Inativar todas as abas
+      const views = document.querySelectorAll('.app-view');
+      views.forEach(v => v.classList.remove('active'));
+      
+      const navBtns = document.querySelectorAll('.nav-btn');
+      navBtns.forEach(b => b.classList.remove('active'));
+
+      // Ativar selecionada
+      document.getElementById(tabId).classList.add('active');
+      if (btnElement) btnElement.classList.add('active');
+    }
+
+    // CONFIGURAÇÕES: SALVAR CHAVE GEMINI
+    function handleSaveGeminiKey(event) {
+      event.preventDefault();
+      const key = document.getElementById('gemini-key').value;
+      
+      showLoading('Salvando chave...');
+      
+      google.script.run
+        .withSuccessHandler(function() {
+          hideLoading();
+          showToast('Chave de API do Gemini salva com sucesso!', 'success');
+          document.getElementById('gemini-key').value = '';
+          loadConfigData();
+        })
+        .withFailureHandler(function(err) {
+          hideLoading();
+          showToast(err.message, 'error');
+        })
+        .saveGeminiKey(key);
+    }
+
+    // CONFIGURAÇÕES: CARREGAR DADOS
+    function loadConfigData() {
+      document.getElementById('gemini-key-status').textContent = 'Carregando status da chave...';
+      
+      google.script.run
+        .withSuccessHandler(function(maskedKey) {
+          const statusDiv = document.getElementById('gemini-key-status');
+          if (maskedKey) {
+            statusDiv.textContent = `Chave configurada: ${maskedKey}`;
+            statusDiv.className = 'masked-key-status';
+          } else {
+            statusDiv.textContent = 'Nenhuma chave Gemini cadastrada ainda.';
+            statusDiv.className = 'masked-key-status empty';
+          }
+        })
+        .withFailureHandler(function(err) {
+          showToast('Erro ao ler configurações: ' + err.message, 'error');
+        })
+        .getGeminiKey();
+    }
+
+    // CONFIGURAÇÕES: ALTERAR SENHA
+    function handleChangePassword(event) {
+      event.preventDefault();
+      const currentPass = document.getElementById('current-pass').value;
+      const newPass = document.getElementById('new-pass').value;
+
+      showLoading('Alterando senha...');
+
+      google.script.run
+        .withSuccessHandler(function() {
+          hideLoading();
+          showToast('Senha alterada com sucesso!', 'success');
+          document.getElementById('current-pass').value = '';
+          document.getElementById('new-pass').value = '';
+        })
+        .withFailureHandler(function(err) {
+          hideLoading();
+          showToast(err.message, 'error');
+        })
+        .setAppPassword(currentPass, newPass);
+    }
+
+    // GERADOR: GERAÇÃO DA AVALIAÇÃO COM IA
+    function handleGenerate(event) {
+      event.preventDefault();
+      const title = document.getElementById('quiz-title').value;
+      const count = parseInt(document.getElementById('quiz-questions-count').value);
+      const content = document.getElementById('quiz-content').value;
+
+      showLoading('A IA está lendo o conteúdo do treinamento...');
+
+      // Passo 1: Gerar perguntas usando a API do Gemini no backend
+      google.script.run
+        .withSuccessHandler(function(questions) {
+          showLoading('Criando e configurando o Quiz no Google Forms...');
+          
+          // Passo 2: Criar o Formulário com as perguntas geradas
+          google.script.run
+            .withSuccessHandler(function(formInfo) {
+              hideLoading();
+              latestGeneratedForm = formInfo;
+              
+              // Exibir tela de sucesso
+              document.getElementById('generator-input-view').style.display = 'none';
+              document.getElementById('generator-result-view').style.display = 'block';
+              
+              document.getElementById('result-text-summary').textContent = 
+                `A prova "${formInfo.title}" com ${formInfo.questionCount} questões foi gerada e gravada no seu Drive.`;
+              
+              document.getElementById('shareable-link').value = formInfo.publishedUrl;
+              showToast('Avaliação criada com sucesso!', 'success');
+            })
+            .withFailureHandler(function(err) {
+              hideLoading();
+              showToast('Erro ao criar formulário: ' + err.message, 'error');
+            })
+            .createFormQuiz(title, questions);
+        })
+        .withFailureHandler(function(err) {
+          hideLoading();
+          showToast('Erro de IA: ' + err.message, 'error');
+        })
+        .generateQuizQuestions(content, count);
+    }
+
+    // GERADOR: RESET PARA NOVO FORM
+    function resetGenerator() {
+      document.getElementById('generator-input-view').style.display = 'grid';
+      document.getElementById('generator-result-view').style.display = 'none';
+      document.getElementById('quiz-title').value = '';
+      document.getElementById('quiz-content').value = '';
+      charCount.textContent = '0 caracteres';
+      latestGeneratedForm = null;
+    }
+
+    // GERADOR: COPIAR LINK
+    function copyShareableLink() {
+      const linkInput = document.getElementById('shareable-link');
+      linkInput.select();
+      linkInput.setSelectionRange(0, 99999);
+      navigator.clipboard.writeText(linkInput.value);
+      showToast('Link de resposta copiado para o clipboard!', 'success');
+    }
+
+    // GERADOR: COMPARTILHAR WHATSAPP
+    function shareOnWhatsapp() {
+      if (!latestGeneratedForm) return;
+      const text = `Olá! Por favor, responda a esta avaliação sobre o nosso treinamento assim que puder:\n\n*${latestGeneratedForm.title}*\n🔗 Acesse aqui: ${latestGeneratedForm.publishedUrl}`;
+      const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    }
+
+    function openGoogleFormEdit() {
+      if (latestGeneratedForm && latestGeneratedForm.editUrl) {
+        window.open(latestGeneratedForm.editUrl, '_blank');
+      }
+    }
+
+    // DASHBOARD: CARREGAR AVALIAÇÕES GERADAS
+    function loadDashboardData() {
+      const listContainer = document.getElementById('active-forms-list');
+      listContainer.innerHTML = '<div class="no-forms-msg">Buscando avaliações...</div>';
+
+      google.script.run
+        .withSuccessHandler(function(forms) {
+          listContainer.innerHTML = '';
+          
+          if (!forms || forms.length === 0) {
+            listContainer.innerHTML = '<div class="no-forms-msg">Nenhuma avaliação gerada ainda. Vá na aba "Gerador" para criar a primeira!</div>';
+            return;
+          }
+
+          forms.forEach(form => {
+            const date = new Date(form.createdAt).toLocaleDateString('pt-BR', {
+              day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+            });
+
+            const div = document.createElement('button');
+            div.className = 'form-list-item';
+            div.id = `sidebar-form-${form.id}`;
+            div.onclick = function() { selectFormForDashboard(form); };
+            
+            div.innerHTML = `
+              <div class="form-item-title" title="${form.title}">${form.title}</div>
+              <div class="form-item-meta">
+                <span>${form.questionCount} Questões</span>
+                <span>${date}</span>
+              </div>
+            `;
+            listContainer.appendChild(div);
+          });
+
+          // Se tiver um ID ativo selecionado na memória, recarrega-o
+          if (currentActiveFormId) {
+            const activeEl = document.getElementById(`sidebar-form-${currentActiveFormId}`);
+            if (activeEl) {
+              activeEl.classList.add('active');
+            } else {
+              currentActiveFormId = null;
+              document.getElementById('selected-form-details').style.display = 'none';
+              document.getElementById('no-selected-form').style.display = 'flex';
+            }
+          }
+        })
+        .withFailureHandler(function(err) {
+          showToast('Erro ao listar avaliações: ' + err.message, 'error');
+          listContainer.innerHTML = '<div class="no-forms-msg" style="color: #fb7185">Erro ao carregar a lista de formulários.</div>';
+        })
+        .getActiveForms();
+    }
+
+    // DASHBOARD: SELECIONAR AVALIAÇÃO
+    function selectFormForDashboard(form) {
+      // Destacar item selecionado na sidebar
+      const items = document.querySelectorAll('.form-list-item');
+      items.forEach(i => i.classList.remove('active'));
+      
+      const selItem = document.getElementById(`sidebar-form-${form.id}`);
+      if (selItem) selItem.classList.add('active');
+
+      currentActiveFormId = form.id;
+      
+      // Exibir painel de detalhes
+      document.getElementById('no-selected-form').style.display = 'none';
+      document.getElementById('selected-form-details').style.display = 'block';
+      
+      document.getElementById('selected-form-title').textContent = form.title;
+      document.getElementById('view-form-link').href = form.publishedUrl;
+      document.getElementById('edit-form-link').href = form.editUrl;
+
+      // Buscar submissões
+      loadSubmissions(form.id);
+    }
+
+    // DASHBOARD: BUSCAR SUBMISSÕES DO FORM
+    function loadSubmissions(formId) {
+      showLoading('Buscando notas em tempo real...');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          hideLoading();
+          displaySubmissions(result.submissions, result.totalPossible);
+        })
+        .withFailureHandler(function(err) {
+          hideLoading();
+          showToast(err.message, 'error');
+        })
+        .getFormSubmissions(formId);
+    }
+
+    function refreshSelectedSubmissions() {
+      if (currentActiveFormId) {
+        loadSubmissions(currentActiveFormId);
+      }
+    }
+
+    // DASHBOARD: RENDERIZAR SUBMISSÕES NA TABELA
+    function displaySubmissions(submissions, totalPossible) {
+      const tbody = document.getElementById('responses-table-body');
+      const tableContainer = document.getElementById('responses-table');
+      const noRespAlert = document.getElementById('no-responses-alert');
+      
+      tbody.innerHTML = '';
+
+      if (!submissions || submissions.length === 0) {
+        tableContainer.style.display = 'none';
+        noRespAlert.style.display = 'block';
+
+        // Stats em zero
+        document.getElementById('stat-responses').textContent = '0';
+        document.getElementById('stat-avg-score').textContent = '0%';
+        document.getElementById('stat-low-scores').textContent = '0';
+        document.getElementById('stat-alert-card').classList.remove('alert-card');
+        return;
+      }
+
+      tableContainer.style.display = 'table';
+      noRespAlert.style.display = 'none';
+
+      let sumPercentage = 0;
+      let lowScoreCount = 0;
+      
+      // Obter nota de corte do seletor da UI (default 70%)
+      const alertThreshold = parseInt(document.getElementById('quiz-grade-min').value);
+
+      submissions.forEach(sub => {
+        sumPercentage += sub.percentage;
+        
+        let statusClass = 'pass';
+        let statusText = 'Aprovado';
+        
+        if (sub.percentage < alertThreshold) {
+          statusClass = 'fail';
+          statusText = 'Recuperação';
+          lowScoreCount++;
+        } else if (sub.percentage < alertThreshold + 10) {
+          // Zona de alerta amarela (ex: entre 70% e 80%)
+          statusClass = 'warning';
+          statusText = 'Alerta';
+        }
+
+        const date = new Date(sub.timestamp).toLocaleString('pt-BR', {
+          day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            <span class="status-dot ${statusClass}" title="${statusText}"></span>
+          </td>
+          <td style="font-weight: 500;">${sub.name}</td>
+          <td style="color: var(--text-muted); font-size: 0.8rem;">${date}</td>
+          <td>${sub.score} / ${sub.totalPossible} pts</td>
+          <td>
+            <span class="score-badge ${statusClass}">${sub.percentage}%</span>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Atualizar estatísticas
+      const avgPercentage = Math.round(sumPercentage / submissions.length);
+      document.getElementById('stat-responses').textContent = submissions.length;
+      document.getElementById('stat-avg-score').textContent = `${avgPercentage}%`;
+      document.getElementById('stat-low-scores').textContent = lowScoreCount;
+
+      const alertCard = document.getElementById('stat-alert-card');
+      if (lowScoreCount > 0) {
+        alertCard.classList.add('alert-card');
+      } else {
+        alertCard.classList.remove('alert-card');
+      }
+    }
+
+    // EXCLUIR FORMULÁRIO DO PAINEL
+    function handleDeleteForm() {
+      if (!currentActiveFormId) return;
+      
+      const confirmDelete = confirm('Tem certeza de que deseja remover esta avaliação do seu painel? (Isso NÃO deletará o formulário do seu Google Drive, apenas ocultará deste painel).');
+      if (!confirmDelete) return;
+
+      showLoading('Ocultando avaliação...');
+
+      google.script.run
+        .withSuccessHandler(function() {
+          hideLoading();
+          showToast('Avaliação removida do histórico.', 'success');
+          currentActiveFormId = null;
+          
+          // Reseta a visualização detalhada
+          document.getElementById('selected-form-details').style.display = 'none';
+          document.getElementById('no-selected-form').style.display = 'flex';
+          
+          // Recarrega o painel lateral
+          loadDashboardData();
+        })
+        .withFailureHandler(function(err) {
+          hideLoading();
+          showToast('Erro ao remover: ' + err.message, 'error');
+        })
+        .deleteFormFromList(currentActiveFormId);
+    }
+  </script>
+</body>
+</html>
