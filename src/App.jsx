@@ -24,10 +24,11 @@ function hashPassword(pw) {
 }
 function fmtDate(d) {
   if (!d) return "";
-  // Garante parsing correto de datas "YYYY-MM-DD" sem problema de timezone
-  const s = String(d).slice(0, 10);
-  const [y, m, day] = s.split("-").map(Number);
-  if (!y || !m || !day) return "";
+  // Postgres pode retornar Date object ou string "2026-06-03" ou "2026-06-03T..."
+  const s = (d instanceof Date ? d.toISOString() : String(d)).slice(0, 10);
+  const parts = s.split("-").map(Number);
+  if (parts.length < 3 || parts.some(isNaN)) return "";
+  const [y, m, day] = parts;
   return new Date(y, m - 1, day).toLocaleDateString("pt-BR");
 }
 function fmtNota(n) { return Number(n).toFixed(1); }
@@ -192,9 +193,9 @@ function PublicHome({ onLoginClick }) {
         <p style={S.pubSectionLabel}>Próximos treinamentos</p>
         {treinamentos.length === 0 && <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>Nenhum treinamento agendado.</p>}
         {treinamentos.map(t => {
-          const rawDate = String(t.data_evento || "").slice(0, 10);
+          const rawDate = (t.data_evento instanceof Date ? t.data_evento.toISOString() : String(t.data_evento || "")).slice(0, 10);
           const [dy, dm, dd] = rawDate.split("-").map(Number);
-          const d = (dy && dm && dd) ? new Date(dy, dm - 1, dd) : new Date("invalid");
+          const d = (dy && dm && dd && !isNaN(dy)) ? new Date(dy, dm - 1, dd) : new Date("invalid");
           return (
             <div key={t.id} style={S.pubCard}>
               <div style={{ textAlign: "center", minWidth: 38 }}>
