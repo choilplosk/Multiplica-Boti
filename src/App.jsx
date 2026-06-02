@@ -20,13 +20,7 @@ function genToken(len = 24) {
   return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 function hashPassword(pw) {
-  // Simple consistent hash
-  let h = 5381;
-  for (let i = 0; i < pw.length; i++) {
-    h = ((h << 5) + h) + pw.charCodeAt(i);
-    h = h & h; // Convert to 32bit integer
-  }
-  return "hash_" + Math.abs(h).toString(16);
+  return "b64_" + btoa(unescape(encodeURIComponent(pw)));
 }
 function fmtDate(d) {
   if (!d) return "";
