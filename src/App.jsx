@@ -192,7 +192,7 @@ function PublicHome({ onLoginClick }) {
         </div>
         <button style={S.btnGhost} onClick={onLoginClick}>🔒 Acesso restrito</button>
       </div>
-      <div style={{ ...S.pubHero, padding: "48px 28px 20px" }}>
+      <div style={{ ...S.pubHero, padding: "16px 28px 20px" }}>
         <p style={{ ...S.pubEyebrow, fontSize: 13, letterSpacing: 3 }}>Programa de desenvolvimento</p>
         <h1 style={{ ...S.pubTitle, fontSize: 56, marginBottom: 10 }}>Multiplica<br /><span style={{ fontWeight: 600, fontStyle: "italic" }}>Boti</span></h1>
         <p style={{ ...S.pubSubtitle, fontSize: 17, marginBottom: 16 }}>Agenda de treinamentos · Niterói</p>
