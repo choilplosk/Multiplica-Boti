@@ -225,9 +225,10 @@ function Sidebar({ user, page, setPage, onLogout }) {
         ["agenda","📅","Agenda"],
         ["questionarios","📝","Questionários"],
         ["resultados","🏆","Resultados"],
-        ...(canManageUsers ? [["usuarios","👥","Usuários"]] : [])
+        ...(canManageUsers ? [["usuarios","👥","Cadastrar Usuários"]] : []),
+        ["configuracoes","⚙️","Configurações"]
       ]
-    : [["dashboard","📊","Dashboard"],["resultados","🏆","Resultados"]];
+    : [["dashboard","📊","Dashboard"],["resultados","🏆","Resultados"],["configuracoes","⚙️","Configurações"]];
   return (
     <div style={S.sidebar}>
       <div style={S.sidebarLogo}>
@@ -834,6 +835,55 @@ function QuizConsultor({ token }) {
 }
 
 // ─── APP PRINCIPAL ────────────────────────────────────────────────────────────
+
+function Configuracoes({ user }) {
+  const [senhaAtual, setSenhaAtual] = useState("");
+  const [novaSenha, setNovaSenha] = useState("");
+  const [confirmar, setConfirmar] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState(null);
+
+  async function trocarSenha() {
+    if (!senhaAtual || !novaSenha || !confirmar) { setMsg({ ok: false, txt: "Preencha todos os campos." }); return; }
+    if (novaSenha !== confirmar) { setMsg({ ok: false, txt: "As senhas novas não coincidem." }); return; }
+    if (novaSenha.length < 6) { setMsg({ ok: false, txt: "A nova senha deve ter pelo menos 6 caracteres." }); return; }
+    setSaving(true); setMsg(null);
+    try {
+      const { rows } = await query(
+        `SELECT id FROM usuarios WHERE id=$1 AND senha_hash=$2`,
+        [user.id, senhaAtual]
+      );
+      if (!rows.length) { setMsg({ ok: false, txt: "Senha atual incorreta." }); setSaving(false); return; }
+      await query(`UPDATE usuarios SET senha_hash=$1 WHERE id=$2`, [novaSenha, user.id]);
+      setMsg({ ok: true, txt: "Senha alterada com sucesso!" });
+      setSenhaAtual(""); setNovaSenha(""); setConfirmar("");
+    } catch (e) {
+      setMsg({ ok: false, txt: "Erro ao alterar senha." });
+    }
+    setSaving(false);
+  }
+
+  return (
+    <div>
+      <p style={S.pageTitle}>Configurações</p>
+      <p style={S.pageSubtitle}>Gerencie suas preferências de acesso</p>
+      <div style={{ ...S.card, maxWidth: 420 }}>
+        <p style={{ fontSize: 15, fontWeight: 500, color: "#1a3d2b", marginBottom: 16 }}>🔑 Trocar senha</p>
+        {[["senhaAtual","Senha atual",senhaAtual,setSenhaAtual],["novaSenha","Nova senha",novaSenha,setNovaSenha],["confirmar","Confirmar nova senha",confirmar,setConfirmar]].map(([k,l,v,set]) => (
+          <div key={k} style={{ marginBottom: 12 }}>
+            <label style={S.label}>{l}</label>
+            <input style={S.input} type="password" value={v} onChange={e => set(e.target.value)} />
+          </div>
+        ))}
+        {msg && <p style={{ fontSize: 13, color: msg.ok ? "#2d7a4f" : "#c0392b", marginBottom: 12 }}>{msg.txt}</p>}
+        <button style={{ ...S.btnPrimary, width: "100%" }} onClick={trocarSenha} disabled={saving}>
+          {saving ? "Salvando..." : "Alterar senha"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [user, setUser] = useState(null);
   const [page, setPage] = useState("dashboard");
@@ -860,6 +910,7 @@ export default function App() {
           {page === "questionarios" && (user.perfil === "multiplicadora" || user.perfil === "diretor") && <Questionarios user={user} />}
           {page === "resultados" && <Resultados />}
           {page === "usuarios" && user.perfil === "diretor" && <Usuarios />}
+          {page === "configuracoes" && <Configuracoes user={user} />}
         </div>
       </div>
     </>
