@@ -21,10 +21,10 @@ export async function seedDB() {
   `);
 }
 
-export async function loginUser(login, senhaHash) {
+export async function loginUser(login, senha) {
   const { rows } = await query(
-    `SELECT * FROM usuarios WHERE (email=$1 OR nome=$1) AND senha_hash=$2 AND ativo=true`,
-    [login.toLowerCase().trim(), senhaHash]
+    `SELECT * FROM usuarios WHERE (LOWER(email)=LOWER($1) OR LOWER(nome)=LOWER($1)) AND senha_hash=$2 AND ativo=true`,
+    [login.trim(), senha]
   );
   return rows[0] || null;
 }

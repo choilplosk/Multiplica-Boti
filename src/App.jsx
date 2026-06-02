@@ -20,7 +20,7 @@ function genToken(len = 24) {
   return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 function hashPassword(pw) {
-  return "b64_" + btoa(unescape(encodeURIComponent(pw)));
+  return pw; // plain text comparison - hash done server side in future
 }
 function fmtDate(d) {
   if (!d) return "";
