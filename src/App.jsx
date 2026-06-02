@@ -173,6 +173,15 @@ function PublicHome({ onLoginClick }) {
     getTreinamentos().then(rows => setTreinamentos(rows.filter(t => t.status !== "cancelado").slice(0, 5)));
   }, []);
 
+  // Calcula próximo treinamento futuro
+  const hoje = new Date();
+  const proxData = treinamentos.map(t => {
+    const raw = (t.data_evento instanceof Date ? t.data_evento.toISOString() : String(t.data_evento || "")).slice(0,10);
+    const [y,m,d] = raw.split("-").map(Number);
+    return (y && m && d) ? new Date(y, m-1, d) : null;
+  }).filter(d => d && d >= hoje).sort((a,b) => a-b)[0];
+  const diasRestantes = proxData ? Math.ceil((proxData - hoje) / 86400000) : null;
+
   return (
     <div style={S.pubBg}>
       <div style={{ position: "absolute", width: 280, height: 280, borderRadius: "50%", background: "rgba(255,255,255,0.04)", top: -80, right: -60, pointerEvents: "none" }} />
@@ -183,10 +192,15 @@ function PublicHome({ onLoginClick }) {
         </div>
         <button style={S.btnGhost} onClick={onLoginClick}>🔒 Acesso restrito</button>
       </div>
-      <div style={{ ...S.pubHero, padding: "48px 28px 28px" }}>
+      <div style={{ ...S.pubHero, padding: "48px 28px 20px" }}>
         <p style={{ ...S.pubEyebrow, fontSize: 13, letterSpacing: 3 }}>Programa de desenvolvimento</p>
         <h1 style={{ ...S.pubTitle, fontSize: 56, marginBottom: 10 }}>Multiplica<br /><span style={{ fontWeight: 600, fontStyle: "italic" }}>Boti</span></h1>
-        <p style={{ ...S.pubSubtitle, fontSize: 17 }}>Agenda de treinamentos · Niterói</p>
+        <p style={{ ...S.pubSubtitle, fontSize: 17, marginBottom: 16 }}>Agenda de treinamentos · Niterói</p>
+        {diasRestantes !== null && (
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.12)", border: "0.5px solid rgba(255,255,255,0.2)", borderRadius: 24, padding: "7px 16px", fontSize: 13, color: "rgba(255,255,255,0.85)" }}>
+            📅 Próximo treinamento em <strong style={{ color: "#fff" }}>{diasRestantes === 0 ? "hoje!" : diasRestantes === 1 ? "1 dia" : `${diasRestantes} dias`}</strong>
+          </div>
+        )}
       </div>
       <div style={S.pubDivider} />
       <div style={S.pubSection}>
@@ -197,14 +211,14 @@ function PublicHome({ onLoginClick }) {
           const [dy, dm, dd] = rawDate.split("-").map(Number);
           const d = (dy && dm && dd && !isNaN(dy)) ? new Date(dy, dm - 1, dd) : new Date("invalid");
           return (
-            <div key={t.id} style={S.pubCard}>
-              <div style={{ textAlign: "center", minWidth: 38 }}>
-                <div style={S.pubDay}>{String(d.getDate()).padStart(2,"0")}</div>
-                <div style={S.pubMonth}>{meses[d.getMonth()]}</div>
+            <div key={t.id} style={{ ...S.pubCard, padding: "18px 20px", alignItems: "center" }}>
+              <div style={{ textAlign: "center", minWidth: 48 }}>
+                <div style={{ ...S.pubDay, fontSize: 32 }}>{isNaN(d.getDate()) ? "--" : String(d.getDate()).padStart(2,"0")}</div>
+                <div style={S.pubMonth}>{isNaN(d.getMonth()) ? "" : meses[d.getMonth()]}</div>
               </div>
-              <div style={S.pubSep} />
+              <div style={{ ...S.pubSep, height: 44 }} />
               <div style={{ flex: 1 }}>
-                <div style={S.pubEventTitle}>{t.titulo}</div>
+                <div style={{ ...S.pubEventTitle, fontSize: 16, marginBottom: 6 }}>{t.titulo}</div>
                 <div style={S.pubMeta}>
                   {t.hora_inicio && <span>🕐 {String(t.hora_inicio).slice(0,5)}</span>}
                   {t.local && <span>📍 {t.local}</span>}
@@ -215,8 +229,8 @@ function PublicHome({ onLoginClick }) {
           );
         })}
       </div>
-      <div style={{ padding: "0 28px 28px", display: "flex", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>Multiplica Boti © 2025 · O Boticário Niterói</span>
+      <div style={{ padding: "16px 28px 32px", borderTop: "0.5px solid rgba(255,255,255,0.1)", marginTop: 8, textAlign: "center" }}>
+        <p style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", margin: 0 }}>Dúvidas? Fale com sua multiplicadora</p>
       </div>
     </div>
   );
