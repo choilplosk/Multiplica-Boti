@@ -12,41 +12,28 @@ export async function query(q, params = []) {
   }
 }
 
-// ─── SEED inicial ─────────────────────────────────────────────────────────────
 export async function seedDB() {
-  // Lojas
   await query(`
     INSERT INTO lojas (nome) VALUES
       ('Shopping Plaza Niterói'),('Shopping Icaraí'),
       ('Pátio Alcântara'),('Shopping Partage Norte'),('Loja Centro Niterói')
     ON CONFLICT DO NOTHING
   `);
-  // Admin
-  const exists = await query(`SELECT id FROM usuarios WHERE email = $1`, ['admin@boticario.com']);
-  if (exists.rows.length === 0) {
-    await query(`
-      INSERT INTO usuarios (nome, email, senha_hash, perfil, ativo)
-      VALUES ($1,$2,$3,$4,$5)
-    `, ['Multiplicadora', 'admin@boticario.com', 'hash_7a3f9b2c', 'multiplicadora', true]);
-  }
 }
 
-// ─── AUTH ─────────────────────────────────────────────────────────────────────
-export async function loginUser(email, senhaHash) {
+export async function loginUser(login, senhaHash) {
   const { rows } = await query(
-    `SELECT * FROM usuarios WHERE email=$1 AND senha_hash=$2 AND ativo=true`,
-    [email.toLowerCase().trim(), senhaHash]
+    `SELECT * FROM usuarios WHERE (email=$1 OR nome=$1) AND senha_hash=$2 AND ativo=true`,
+    [login.toLowerCase().trim(), senhaHash]
   );
   return rows[0] || null;
 }
 
-// ─── LOJAS ────────────────────────────────────────────────────────────────────
 export async function getLojas() {
   const { rows } = await query(`SELECT * FROM lojas WHERE ativo=true ORDER BY nome`);
   return rows;
 }
 
-// ─── TREINAMENTOS ─────────────────────────────────────────────────────────────
 export async function getTreinamentos() {
   const { rows } = await query(`SELECT * FROM treinamentos ORDER BY data_evento ASC`);
   return rows;
@@ -64,7 +51,6 @@ export async function deleteTreinamento(id) {
   await query(`DELETE FROM treinamentos WHERE id=$1`, [id]);
 }
 
-// ─── QUESTIONÁRIOS ────────────────────────────────────────────────────────────
 export async function getQuestionarios() {
   const { rows } = await query(`SELECT * FROM questionarios ORDER BY criado_em DESC`);
   return rows;
@@ -89,7 +75,6 @@ export async function deleteQuestionario(id) {
   await query(`DELETE FROM questionarios WHERE id=$1`, [id]);
 }
 
-// ─── PERGUNTAS ────────────────────────────────────────────────────────────────
 export async function getPerguntasByQuiz(quizId) {
   const { rows } = await query(`SELECT * FROM perguntas WHERE questionario_id=$1 ORDER BY ordem`, [quizId]);
   return rows;
@@ -104,7 +89,6 @@ export async function insertPerguntas(perguntas, quizId) {
   }
 }
 
-// ─── RESPOSTAS ────────────────────────────────────────────────────────────────
 export async function getRespostas(quizId = null) {
   if (quizId) {
     const { rows } = await query(`SELECT * FROM respostas_consultor WHERE questionario_id=$1 ORDER BY respondido_em DESC`, [quizId]);
@@ -130,7 +114,6 @@ export async function jaRespondeu(quizId, nomeConsultor) {
   return rows.length > 0;
 }
 
-// ─── USUARIOS ─────────────────────────────────────────────────────────────────
 export async function getUsuarios() {
   const { rows } = await query(`SELECT id, nome, email, perfil, loja_id, ativo, criado_em FROM usuarios ORDER BY nome`);
   return rows;

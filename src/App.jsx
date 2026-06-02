@@ -128,7 +128,7 @@ function LoginModal({ onClose, onLogin }) {
   async function handleLogin() {
     setLoading(true); setErro("");
     const user = await loginUser(email, hashPassword(senha));
-    if (!user) { setErro("E-mail ou senha incorretos."); setLoading(false); return; }
+    if (!user) { setErro("Login ou senha incorretos."); setLoading(false); return; }
     onLogin(user); setLoading(false);
   }
 
@@ -141,15 +141,15 @@ function LoginModal({ onClose, onLogin }) {
         </div>
         <p style={{ ...S.pageTitle, fontSize: 20, textAlign: "center", marginBottom: 20 }}>Acesso ao sistema</p>
         <div style={{ marginBottom: 14 }}>
-          <label style={S.label}>E-mail</label>
-          <input style={S.input} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" />
+          <label style={S.label}>Login</label>
+          <input style={S.input} type="text" value={email} onChange={e => setEmail(e.target.value)} placeholder="Seu login ou e-mail" />
         </div>
         <div style={{ marginBottom: 8 }}>
           <label style={S.label}>Senha</label>
           <input style={S.input} type="password" value={senha} onChange={e => setSenha(e.target.value)} placeholder="••••••••" onKeyDown={e => e.key === "Enter" && handleLogin()} />
         </div>
         {erro && <p style={{ fontSize: 12, color: "#c0392b", marginBottom: 8 }}>{erro}</p>}
-        <p style={{ fontSize: 11, color: "#aaa", marginBottom: 16 }}>Acesso padrão: admin@boticario.com / boti2025</p>
+        <p style={{ fontSize: 11, color: "#aaa", marginBottom: 16 }}></p>
         <button style={{ ...S.btnPrimary, width: "100%" }} onClick={handleLogin} disabled={loading}>
           {loading ? "Verificando..." : "Entrar"}
         </button>
@@ -217,8 +217,16 @@ function PublicHome({ onLoginClick }) {
 
 // ─── SIDEBAR ──────────────────────────────────────────────────────────────────
 function Sidebar({ user, page, setPage, onLogout }) {
-  const items = user.perfil === "multiplicadora"
-    ? [["dashboard","📊","Dashboard"],["agenda","📅","Agenda"],["questionarios","📝","Questionários"],["resultados","🏆","Resultados"],["usuarios","👥","Usuários"]]
+  const canEdit = user.perfil === "multiplicadora" || user.perfil === "diretor";
+  const canManageUsers = user.perfil === "diretor";
+  const items = canEdit
+    ? [
+        ["dashboard","📊","Dashboard"],
+        ["agenda","📅","Agenda"],
+        ["questionarios","📝","Questionários"],
+        ["resultados","🏆","Resultados"],
+        ...(canManageUsers ? [["usuarios","👥","Usuários"]] : [])
+      ]
     : [["dashboard","📊","Dashboard"],["resultados","🏆","Resultados"]];
   return (
     <div style={S.sidebar}>
@@ -613,7 +621,7 @@ function Usuarios() {
   const [lista, setLista] = useState([]);
   const [lojas, setLojas] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ nome: "", email: "", senha: "", perfil: "gerencia", loja_id: "" });
+  const [form, setForm] = useState({ nome: "", email: "", senha: "", perfil: "leitor", loja_id: "" });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { Promise.all([getUsuarios(), getLojas()]).then(([u,l]) => { setLista(u); setLojas(l); }); }, []);
@@ -624,7 +632,7 @@ function Usuarios() {
     setSaving(true);
     await insertUsuario({ ...form, senha_hash: hashPassword(form.senha) });
     setLista(await getUsuarios()); setSaving(false); setShowModal(false);
-    setForm({ nome: "", email: "", senha: "", perfil: "gerencia", loja_id: "" });
+    setForm({ nome: "", email: "", senha: "", perfil: "leitor", loja_id: "" });
   }
 
   return (
@@ -641,7 +649,7 @@ function Usuarios() {
               <tr key={u.id}>
                 <td style={S.td}><strong>{u.nome}</strong></td>
                 <td style={S.td}>{u.email}</td>
-                <td style={S.td}><span style={S.badge(u.perfil === "multiplicadora")}>{u.perfil}</span></td>
+                <td style={S.td}><span style={S.badge(u.perfil === "multiplicadora" || user.perfil === "diretor")}>{u.perfil}</span></td>
                 <td style={S.td}>{lojas.find(l => l.id === u.loja_id)?.nome || "—"}</td>
               </tr>
             ))}
@@ -657,7 +665,7 @@ function Usuarios() {
             ))}
             <div style={{ marginBottom: 12 }}><label style={S.label}>Perfil</label>
               <select style={S.input} value={form.perfil} onChange={e => setForm(p => ({ ...p, perfil: e.target.value }))}>
-                <option value="multiplicadora">Multiplicadora</option><option value="gerencia">Gerência</option>
+                <option value="multiplicadora">Multiplicadora</option><option value="leitor">Leitor</option>
               </select>
             </div>
             <div style={{ marginBottom: 16 }}><label style={S.label}>Loja (opcional)</label>
@@ -811,10 +819,10 @@ export default function App() {
         <Sidebar user={user} page={page} setPage={setPage} onLogout={() => { setUser(null); setPage("dashboard"); }} />
         <div style={S.mainContent}>
           {page === "dashboard" && <Dashboard />}
-          {page === "agenda" && user.perfil === "multiplicadora" && <Agenda user={user} />}
-          {page === "questionarios" && user.perfil === "multiplicadora" && <Questionarios user={user} />}
+          {page === "agenda" && (user.perfil === "multiplicadora" || user.perfil === "diretor") && <Agenda user={user} />}
+          {page === "questionarios" && (user.perfil === "multiplicadora" || user.perfil === "diretor") && <Questionarios user={user} />}
           {page === "resultados" && <Resultados />}
-          {page === "usuarios" && user.perfil === "multiplicadora" && <Usuarios />}
+          {page === "usuarios" && user.perfil === "diretor" && <Usuarios />}
         </div>
       </div>
     </>
