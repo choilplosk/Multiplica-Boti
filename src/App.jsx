@@ -20,8 +20,12 @@ function genToken(len = 24) {
   return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 function hashPassword(pw) {
-  let h = 0;
-  for (let i = 0; i < pw.length; i++) h = (Math.imul(31, h) + pw.charCodeAt(i)) | 0;
+  // Simple consistent hash
+  let h = 5381;
+  for (let i = 0; i < pw.length; i++) {
+    h = ((h << 5) + h) + pw.charCodeAt(i);
+    h = h & h; // Convert to 32bit integer
+  }
   return "hash_" + Math.abs(h).toString(16);
 }
 function fmtDate(d) {
