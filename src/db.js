@@ -128,3 +128,10 @@ export async function emailExiste(email) {
     return rows.length > 0;
   } catch(e) { return false; }
 }
+
+export async function updateSenha(userId, novaSenha) {
+  try {
+    await sql`UPDATE usuarios SET senha_hash=${novaSenha} WHERE id=${userId}`;
+    return true;
+  } catch(e) { console.error(e); return false; }
+}

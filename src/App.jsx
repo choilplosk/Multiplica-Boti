@@ -5,7 +5,7 @@ import {
   getQuestionarios, getQuestionarioByToken, insertQuestionario, deleteQuestionario,
   getPerguntasByQuiz, insertPerguntas,
   getRespostas, insertResposta, jaRespondeu,
-  getUsuarios, insertUsuario, emailExiste
+  getUsuarios, insertUsuario, emailExiste, updateSenha
 } from "./db.js";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -225,7 +225,6 @@ function Sidebar({ user, page, setPage, onLogout }) {
         ["agenda","📅","Agenda"],
         ["questionarios","📝","Questionários"],
         ["resultados","🏆","Resultados"],
-        ...(canManageUsers ? [["usuarios","👥","Cadastrar Usuários"]] : []),
         ["configuracoes","⚙️","Configurações"]
       ]
     : [["dashboard","📊","Dashboard"],["resultados","🏆","Resultados"],["configuracoes","⚙️","Configurações"]];
@@ -837,11 +836,25 @@ function QuizConsultor({ token }) {
 // ─── APP PRINCIPAL ────────────────────────────────────────────────────────────
 
 function Configuracoes({ user }) {
+  const [tab, setTab] = useState("senha");
+  // --- troca de senha ---
   const [senhaAtual, setSenhaAtual] = useState("");
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmar, setConfirmar] = useState("");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
+  // --- cadastro usuarios (diretor) ---
+  const [lista, setLista] = useState([]);
+  const [lojas, setLojas] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({ nome: "", email: "", senha: "", perfil: "leitor", loja_id: "" });
+  const [savingUser, setSavingUser] = useState(false);
+
+  useEffect(() => {
+    if (user.perfil === "diretor") {
+      Promise.all([getUsuarios(), getLojas()]).then(([u, l]) => { setLista(u); setLojas(l); });
+    }
+  }, []);
 
   async function trocarSenha() {
     if (!senhaAtual || !novaSenha || !confirmar) { setMsg({ ok: false, txt: "Preencha todos os campos." }); return; }
@@ -849,12 +862,9 @@ function Configuracoes({ user }) {
     if (novaSenha.length < 6) { setMsg({ ok: false, txt: "A nova senha deve ter pelo menos 6 caracteres." }); return; }
     setSaving(true); setMsg(null);
     try {
-      const { rows } = await query(
-        `SELECT id FROM usuarios WHERE id=$1 AND senha_hash=$2`,
-        [user.id, senhaAtual]
-      );
-      if (!rows.length) { setMsg({ ok: false, txt: "Senha atual incorreta." }); setSaving(false); return; }
-      await query(`UPDATE usuarios SET senha_hash=$1 WHERE id=$2`, [novaSenha, user.id]);
+      const res = await loginUser(user.email, senhaAtual);
+      if (!res) { setMsg({ ok: false, txt: "Senha atual incorreta." }); setSaving(false); return; }
+      await updateSenha(user.id, novaSenha);
       setMsg({ ok: true, txt: "Senha alterada com sucesso!" });
       setSenhaAtual(""); setNovaSenha(""); setConfirmar("");
     } catch (e) {
@@ -863,23 +873,90 @@ function Configuracoes({ user }) {
     setSaving(false);
   }
 
+  async function salvarUsuario() {
+    if (!form.nome || !form.email || !form.senha) { alert("Preencha todos os campos obrigatórios."); return; }
+    if (await emailExiste(form.email)) { alert("E-mail já cadastrado."); return; }
+    setSavingUser(true);
+    await insertUsuario({ ...form, senha_hash: form.senha });
+    setLista(await getUsuarios()); setSavingUser(false); setShowModal(false);
+    setForm({ nome: "", email: "", senha: "", perfil: "leitor", loja_id: "" });
+  }
+
+  const tabStyle = (t) => ({ padding: "8px 20px", fontSize: 13, fontWeight: tab === t ? 600 : 400, color: tab === t ? GREEN : "#888", borderBottom: tab === t ? `2px solid ${GREEN}` : "2px solid transparent", cursor: "pointer", background: "none", border: "none", borderBottom: tab === t ? `2px solid ${GREEN}` : "2px solid transparent" });
+
   return (
     <div>
       <p style={S.pageTitle}>Configurações</p>
-      <p style={S.pageSubtitle}>Gerencie suas preferências de acesso</p>
-      <div style={{ ...S.card, maxWidth: 420 }}>
-        <p style={{ fontSize: 15, fontWeight: 500, color: "#1a3d2b", marginBottom: 16 }}>🔑 Trocar senha</p>
-        {[["senhaAtual","Senha atual",senhaAtual,setSenhaAtual],["novaSenha","Nova senha",novaSenha,setNovaSenha],["confirmar","Confirmar nova senha",confirmar,setConfirmar]].map(([k,l,v,set]) => (
-          <div key={k} style={{ marginBottom: 12 }}>
-            <label style={S.label}>{l}</label>
-            <input style={S.input} type="password" value={v} onChange={e => set(e.target.value)} />
+      <p style={S.pageSubtitle}>Preferências e administração</p>
+      {user.perfil === "diretor" && (
+        <div style={{ display: "flex", gap: 0, borderBottom: "1px solid #e0ece8", marginBottom: 20 }}>
+          <button style={tabStyle("senha")} onClick={() => setTab("senha")}>🔑 Trocar senha</button>
+          <button style={tabStyle("usuarios")} onClick={() => setTab("usuarios")}>👥 Usuários</button>
+        </div>
+      )}
+      {tab === "senha" && (
+        <div style={{ ...S.card, maxWidth: 420 }}>
+          <p style={{ fontSize: 15, fontWeight: 500, color: "#1a3d2b", marginBottom: 16 }}>🔑 Trocar senha</p>
+          {[["senhaAtual","Senha atual",senhaAtual,setSenhaAtual],["novaSenha","Nova senha",novaSenha,setNovaSenha],["confirmar","Confirmar nova senha",confirmar,setConfirmar]].map(([k,l,v,set]) => (
+            <div key={k} style={{ marginBottom: 12 }}>
+              <label style={S.label}>{l}</label>
+              <input style={S.input} type="password" value={v} onChange={e => set(e.target.value)} />
+            </div>
+          ))}
+          {msg && <p style={{ fontSize: 13, color: msg.ok ? "#2d7a4f" : "#c0392b", marginBottom: 12 }}>{msg.txt}</p>}
+          <button style={{ ...S.btnPrimary, width: "100%" }} onClick={trocarSenha} disabled={saving}>
+            {saving ? "Salvando..." : "Alterar senha"}
+          </button>
+        </div>
+      )}
+      {tab === "usuarios" && user.perfil === "diretor" && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <p style={{ fontSize: 14, fontWeight: 500, color: "#1a3d2b" }}>{lista.length} usuário(s) cadastrado(s)</p>
+            <button style={S.btnPrimary} onClick={() => setShowModal(true)}>+ Novo usuário</button>
           </div>
-        ))}
-        {msg && <p style={{ fontSize: 13, color: msg.ok ? "#2d7a4f" : "#c0392b", marginBottom: 12 }}>{msg.txt}</p>}
-        <button style={{ ...S.btnPrimary, width: "100%" }} onClick={trocarSenha} disabled={saving}>
-          {saving ? "Salvando..." : "Alterar senha"}
-        </button>
-      </div>
+          <div style={S.card}>
+            <table style={S.table}>
+              <thead><tr><th style={S.th}>Nome</th><th style={S.th}>E-mail</th><th style={S.th}>Perfil</th><th style={S.th}>Loja</th></tr></thead>
+              <tbody>
+                {lista.map(u => (
+                  <tr key={u.id}>
+                    <td style={S.td}><strong>{u.nome}</strong></td>
+                    <td style={S.td}>{u.email}</td>
+                    <td style={S.td}><span style={S.badge(u.perfil === "multiplicadora" || u.perfil === "diretor")}>{u.perfil}</span></td>
+                    <td style={S.td}>{lojas.find(l => l.id === u.loja_id)?.nome || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {showModal && (
+            <div style={S.modalBg} onClick={() => setShowModal(false)}>
+              <div style={S.modalCard} onClick={e => e.stopPropagation()}>
+                <p style={{ ...S.pageTitle, fontSize: 20, marginBottom: 20 }}>Novo usuário</p>
+                {[["nome","Nome *","text"],["email","E-mail *","email"],["senha","Senha *","password"]].map(([k,l,t]) => (
+                  <div key={k} style={{ marginBottom: 12 }}><label style={S.label}>{l}</label><input style={S.input} type={t} value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))} /></div>
+                ))}
+                <div style={{ marginBottom: 12 }}><label style={S.label}>Perfil</label>
+                  <select style={S.input} value={form.perfil} onChange={e => setForm(p => ({ ...p, perfil: e.target.value }))}>
+                    <option value="multiplicadora">Multiplicadora</option><option value="leitor">Leitor</option>
+                  </select>
+                </div>
+                <div style={{ marginBottom: 16 }}><label style={S.label}>Loja (opcional)</label>
+                  <select style={S.input} value={form.loja_id} onChange={e => setForm(p => ({ ...p, loja_id: e.target.value }))}>
+                    <option value="">Sem loja vinculada</option>
+                    {lojas.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button style={{ ...S.btnPrimary, flex: 1 }} onClick={salvarUsuario} disabled={savingUser}>{savingUser ? "Salvando..." : "Salvar"}</button>
+                  <button style={{ ...S.btnSecondary, flex: 1 }} onClick={() => setShowModal(false)}>Cancelar</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -909,7 +986,6 @@ export default function App() {
           {page === "agenda" && (user.perfil === "multiplicadora" || user.perfil === "diretor") && <Agenda user={user} />}
           {page === "questionarios" && (user.perfil === "multiplicadora" || user.perfil === "diretor") && <Questionarios user={user} />}
           {page === "resultados" && <Resultados />}
-          {page === "usuarios" && user.perfil === "diretor" && <Usuarios />}
           {page === "configuracoes" && <Configuracoes user={user} />}
         </div>
       </div>
