@@ -96,14 +96,14 @@ export async function getRespostas(quizId = null) {
 
 export async function insertResposta(data) {
   try {
-    const rows = await sql`INSERT INTO respostas_consultor (questionario_id, nome_consultor, loja, respostas, total_perguntas, total_acertos, nota, aprovado, respondido_em) VALUES (${data.questionario_id}, ${data.nome_consultor}, ${data.loja||null}, ${JSON.stringify(data.respostas)}, ${data.total_perguntas}, ${data.total_acertos}, ${data.nota}, ${data.aprovado}, NOW()) RETURNING *`;
+    const rows = await sql`INSERT INTO respostas_consultor (questionario_id, nome_consultor, loja, respostas, total_perguntas, total_acertos, nota, aprovado, respondido_em, device_id) VALUES (${data.questionario_id}, ${data.nome_consultor}, ${data.loja||null}, ${JSON.stringify(data.respostas)}, ${data.total_perguntas}, ${data.total_acertos}, ${data.nota}, ${data.aprovado}, NOW(), ${data.device_id||null}) RETURNING *`;
     return rows[0];
   } catch(e) { console.error(e); }
 }
 
-export async function jaRespondeu(quizId, nomeConsultor) {
+export async function jaRespondeu(quizId, nomeConsultor, deviceId) {
   try {
-    const rows = await sql`SELECT id FROM respostas_consultor WHERE questionario_id=${quizId} AND LOWER(nome_consultor)=LOWER(${nomeConsultor})`;
+    const rows = await sql`SELECT id FROM respostas_consultor WHERE questionario_id=${quizId} AND (LOWER(nome_consultor)=LOWER(${nomeConsultor}) OR (device_id IS NOT NULL AND device_id=${deviceId}))`;
     return rows.length > 0;
   } catch(e) { return false; }
 }

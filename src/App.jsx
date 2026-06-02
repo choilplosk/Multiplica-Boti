@@ -816,11 +816,24 @@ function QuizConsultor({ token }) {
   const [atual, setAtual] = useState(0);
   const [saving, setSaving] = useState(false);
 
+  const [deviceId, setDeviceId] = useState("");
+
   useEffect(() => {
+    // Gera ou recupera ID único do dispositivo
+    let did = localStorage.getItem("boti_device_id");
+    if (!did) {
+      did = "d_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem("boti_device_id", did);
+    }
+    setDeviceId(did);
+
     async function init() {
       const [q, ls] = await Promise.all([getQuestionarioByToken(token), getLojas()]);
       setLojas(ls);
       if (!q) { setStep("invalido"); return; }
+      // Bloqueia pelo dispositivo antes mesmo de mostrar o formulário
+      const bloqueado = await jaRespondeu(q.id, "__device_check__", did);
+      if (bloqueado) { setStep("jaRespondeu"); return; }
       const ps = await getPerguntasByQuiz(q.id);
       setQuiz(q); setPerguntas(ps); setStep("intro");
     }
@@ -829,7 +842,7 @@ function QuizConsultor({ token }) {
 
   async function iniciar() {
     if (!nome.trim()) { alert("Informe seu nome completo."); return; }
-    const jaresp = await jaRespondeu(quiz.id, nome.trim());
+    const jaresp = await jaRespondeu(quiz.id, nome.trim(), deviceId);
     if (jaresp) { setStep("jaRespondeu"); return; }
     setStep("quiz");
   }
@@ -842,7 +855,7 @@ function QuizConsultor({ token }) {
     setSaving(true);
     const acertos = perguntas.filter((p, i) => respostas[i] === p.resposta_correta).length;
     const nota = (acertos / perguntas.length) * 10;
-    await insertResposta({ questionario_id: quiz.id, nome_consultor: nome.trim(), loja: loja || null, respostas, total_perguntas: perguntas.length, total_acertos: acertos, nota, aprovado: nota >= 8 });
+    await insertResposta({ questionario_id: quiz.id, nome_consultor: nome.trim(), loja: loja || null, respostas, total_perguntas: perguntas.length, total_acertos: acertos, nota, aprovado: nota >= 8, device_id: deviceId });
     setSaving(false); setStep("done");
   }
 
