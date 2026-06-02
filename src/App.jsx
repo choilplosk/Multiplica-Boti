@@ -24,7 +24,11 @@ function hashPassword(pw) {
 }
 function fmtDate(d) {
   if (!d) return "";
-  return new Date(d).toLocaleDateString("pt-BR");
+  // Garante parsing correto de datas "YYYY-MM-DD" sem problema de timezone
+  const s = String(d).slice(0, 10);
+  const [y, m, day] = s.split("-").map(Number);
+  if (!y || !m || !day) return "";
+  return new Date(y, m - 1, day).toLocaleDateString("pt-BR");
 }
 function fmtNota(n) { return Number(n).toFixed(1); }
 
@@ -173,22 +177,24 @@ function PublicHome({ onLoginClick }) {
       <div style={{ position: "absolute", width: 280, height: 280, borderRadius: "50%", background: "rgba(255,255,255,0.04)", top: -80, right: -60, pointerEvents: "none" }} />
       <div style={S.pubHeader}>
         <div style={S.pubLogo}>
-          <LogoImg w={80} />
-          <span style={S.pubNiteroi}>Niterói</span>
+          <span style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.9)", letterSpacing: 1 }}>oBoticário</span>
+          <span style={{ ...S.pubNiteroi, fontSize: 11 }}>NITERÓI</span>
         </div>
         <button style={S.btnGhost} onClick={onLoginClick}>🔒 Acesso restrito</button>
       </div>
-      <div style={S.pubHero}>
-        <p style={S.pubEyebrow}>Programa de desenvolvimento</p>
-        <h1 style={S.pubTitle}>Multiplica<br /><span style={{ fontWeight: 600, fontStyle: "italic" }}>Boti</span></h1>
-        <p style={S.pubSubtitle}>Agenda de treinamentos · Niterói</p>
+      <div style={{ ...S.pubHero, padding: "48px 28px 28px" }}>
+        <p style={{ ...S.pubEyebrow, fontSize: 13, letterSpacing: 3 }}>Programa de desenvolvimento</p>
+        <h1 style={{ ...S.pubTitle, fontSize: 56, marginBottom: 10 }}>Multiplica<br /><span style={{ fontWeight: 600, fontStyle: "italic" }}>Boti</span></h1>
+        <p style={{ ...S.pubSubtitle, fontSize: 17 }}>Agenda de treinamentos · Niterói</p>
       </div>
       <div style={S.pubDivider} />
       <div style={S.pubSection}>
         <p style={S.pubSectionLabel}>Próximos treinamentos</p>
         {treinamentos.length === 0 && <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>Nenhum treinamento agendado.</p>}
         {treinamentos.map(t => {
-          const d = new Date(t.data_evento + "T12:00:00");
+          const rawDate = String(t.data_evento || "").slice(0, 10);
+          const [dy, dm, dd] = rawDate.split("-").map(Number);
+          const d = (dy && dm && dd) ? new Date(dy, dm - 1, dd) : new Date("invalid");
           return (
             <div key={t.id} style={S.pubCard}>
               <div style={{ textAlign: "center", minWidth: 38 }}>
@@ -596,6 +602,7 @@ function Resultados() {
   const [respostas, setRespostas] = useState([]);
   const [quizSel, setQuizSel] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showRelatorio, setShowRelatorio] = useState(false);
 
   useEffect(() => {
     Promise.all([getQuestionarios(), getRespostas()]).then(([q, r]) => {
@@ -627,26 +634,86 @@ function Resultados() {
       </div>
       {filtradas.length === 0 && <div style={{ ...S.card, textAlign: "center", padding: 40, color: "#aaa" }}><p style={{ fontSize: 32 }}>🏆</p><p>Nenhuma resposta ainda.</p></div>}
       {filtradas.length > 0 && (
-        <div style={S.card}>
-          <table style={S.table}>
-            <thead><tr><th style={S.th}>Consultor</th><th style={S.th}>Loja</th><th style={S.th}>Questionário</th><th style={S.th}>Acertos</th><th style={S.th}>Nota</th><th style={S.th}>Resultado</th><th style={S.th}>Data</th></tr></thead>
-            <tbody>
-              {filtradas.map(r => {
-                const q = quizzes.find(x => x.id === r.questionario_id);
-                return (
-                  <tr key={r.id}>
-                    <td style={S.td}><strong>{r.nome_consultor}</strong></td>
-                    <td style={S.td}>{r.loja || "—"}</td>
-                    <td style={{ ...S.td, fontSize: 12, color: "#888" }}>{q?.titulo || "—"}</td>
-                    <td style={S.td}>{r.total_acertos}/{r.total_perguntas}</td>
-                    <td style={S.td}><strong style={{ color: r.aprovado ? GREEN : "#c0392b" }}>{fmtNota(r.nota)}</strong></td>
-                    <td style={S.td}><span style={S.badge(r.aprovado)}>{r.aprovado ? "✓ Aprovado" : "⚠ Reforço"}</span></td>
-                    <td style={{ ...S.td, fontSize: 12, color: "#aaa" }}>{fmtDate(r.respondido_em)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+            <button style={{ ...S.btnPrimary, fontSize: 13 }} onClick={() => setShowRelatorio(true)}>📊 Gerar relatório</button>
+          </div>
+          <div style={S.card}>
+            <table style={S.table}>
+              <thead><tr><th style={S.th}>Consultor</th><th style={S.th}>Loja</th><th style={S.th}>Questionário</th><th style={S.th}>Acertos</th><th style={S.th}>Nota</th><th style={S.th}>Resultado</th><th style={S.th}>Data</th></tr></thead>
+              <tbody>
+                {filtradas.map(r => {
+                  const q = quizzes.find(x => x.id === r.questionario_id);
+                  return (
+                    <tr key={r.id}>
+                      <td style={S.td}><strong>{r.nome_consultor}</strong></td>
+                      <td style={S.td}>{r.loja || "—"}</td>
+                      <td style={{ ...S.td, fontSize: 12, color: "#888" }}>{q?.titulo || "—"}</td>
+                      <td style={S.td}>{r.total_acertos}/{r.total_perguntas}</td>
+                      <td style={S.td}><strong style={{ color: r.aprovado ? GREEN : "#c0392b" }}>{fmtNota(r.nota)}</strong></td>
+                      <td style={S.td}><span style={S.badge(r.aprovado)}>{r.aprovado ? "✓ Aprovado" : "⚠ Reforço"}</span></td>
+                      <td style={{ ...S.td, fontSize: 12, color: "#aaa" }}>{fmtDate(r.respondido_em)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+      {showRelatorio && (
+        <div style={S.modalBg} onClick={() => setShowRelatorio(false)}>
+          <div style={{ ...S.modalCard, maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+            <p style={{ ...S.pageTitle, fontSize: 18, marginBottom: 4 }}>📊 Relatório por loja</p>
+            <p style={{ fontSize: 13, color: "#888", marginBottom: 16 }}>
+              {quizSel ? `Questionário: ${quizzes.find(q=>q.id===Number(quizSel))?.titulo}` : "Todos os questionários"}
+            </p>
+            {(() => {
+              const porLoja = {};
+              filtradas.forEach(r => {
+                const loja = r.loja || "Sem loja";
+                if (!porLoja[loja]) porLoja[loja] = { total: 0, aprovados: 0, notas: [] };
+                porLoja[loja].total++;
+                if (r.aprovado) porLoja[loja].aprovados++;
+                porLoja[loja].notas.push(Number(r.nota));
+              });
+              const linhas = Object.entries(porLoja).sort((a,b) => a[0].localeCompare(b[0]));
+              const quizNome = quizSel ? (quizzes.find(q=>q.id===Number(quizSel))?.titulo || "") : "Todos os questionários";
+              const linhasWhats = linhas.map(([loja, d]) => {
+                const media = (d.notas.reduce((s,n)=>s+n,0)/d.notas.length).toFixed(1);
+                const pct = Math.round(d.aprovados/d.total*100);
+                return "*" + loja + "*\n✅ Aprovados: " + d.aprovados + "/" + d.total + " (" + pct + "%)\n📈 Média: " + media;
+              });
+              const sep = "─────────────────";
+              const textoWhats = "*Relatório Multiplica Boti*\n📝 " + quizNome + "\n" + sep + "\n" + linhasWhats.join("\n" + sep + "\n") + "\n" + sep + "\n*Total geral: " + filtradas.length + " avaliações · " + filtradas.filter(r=>r.aprovado).length + " aprovados*";
+              return (
+                <>
+                  {linhas.map(([loja, d]) => {
+                    const media = (d.notas.reduce((s,n)=>s+n,0)/d.notas.length).toFixed(1);
+                    const pct = Math.round(d.aprovados/d.total*100);
+                    return (
+                      <div key={loja} style={{ padding: "10px 14px", background: "#f7faf9", borderRadius: 8, marginBottom: 8, border: "1px solid #e0ece8" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <strong style={{ fontSize: 14, color: "#1a3d2b" }}>{loja}</strong>
+                          <span style={S.badge(pct >= 80)}>{pct}% aprovação</span>
+                        </div>
+                        <div style={{ fontSize: 13, color: "#666", marginTop: 4 }}>
+                          ✅ {d.aprovados}/{d.total} aprovados · 📈 Média {media}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div style={{ marginTop: 16, padding: "10px 14px", background: GREEN_LIGHT, borderRadius: 8, border: `1px solid ${GREEN}`, fontSize: 13, color: GREEN_DARK, fontWeight: 500 }}>
+                    Total: {filtradas.length} avaliações · {filtradas.filter(r=>r.aprovado).length} aprovados
+                  </div>
+                  <button style={{ ...S.btnPrimary, width: "100%", marginTop: 16 }} onClick={() => { navigator.clipboard?.writeText(textoWhats); alert("Relatório copiado! Cole no WhatsApp."); }}>
+                    📋 Copiar para WhatsApp
+                  </button>
+                  <button style={{ ...S.btnSecondary, width: "100%", marginTop: 8 }} onClick={() => setShowRelatorio(false)}>Fechar</button>
+                </>
+              );
+            })()}
+          </div>
         </div>
       )}
     </div>
