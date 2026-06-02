@@ -459,11 +459,48 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
       <div style={S.card}>
         <p style={{ fontSize: 14, fontWeight: 500, color: "#1a3d2b", marginBottom: 12 }}>2. Conteúdo do treinamento</p>
         <div style={{ marginBottom: 10 }}>
-          <input ref={fileRef} type="file" accept=".txt,.md" style={{ display: "none" }} onChange={async e => {
+          <input ref={fileRef} type="file" accept=".txt,.md,.pdf,.doc,.docx,.ppt,.pptx" style={{ display: "none" }} onChange={async e => {
             const f = e.target.files[0]; if (!f) return;
-            const text = await f.text(); setConteudo(text);
+            const ext = f.name.split(".").pop().toLowerCase();
+            try {
+              if (ext === "txt" || ext === "md") {
+                const text = await f.text(); setConteudo(text);
+              } else if (ext === "pdf") {
+                const { getDocument, GlobalWorkerOptions } = await import("pdfjs-dist");
+                GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs`;
+                const ab = await f.arrayBuffer();
+                const pdf = await getDocument({ data: ab }).promise;
+                let text = "";
+                for (let i = 1; i <= pdf.numPages; i++) {
+                  const page = await pdf.getPage(i);
+                  const content = await page.getTextContent();
+                  text += content.items.map(item => item.str).join(" ") + "\n";
+                }
+                setConteudo(text.trim());
+              } else if (ext === "docx" || ext === "doc") {
+                const mammoth = await import("mammoth");
+                const ab = await f.arrayBuffer();
+                const result = await mammoth.extractRawText({ arrayBuffer: ab });
+                setConteudo(result.value.trim());
+              } else if (ext === "pptx" || ext === "ppt") {
+                const JSZip = (await import("jszip")).default;
+                const ab = await f.arrayBuffer();
+                const zip = await JSZip.loadAsync(ab);
+                let text = "";
+                const slideFiles = Object.keys(zip.files).filter(n => n.match(/ppt\/slides\/slide[0-9]+\.xml$/)).sort();
+                for (const name of slideFiles) {
+                  const xml = await zip.files[name].async("string");
+                  const matches = xml.match(/<a:t>(.*?)<\/a:t>/g) || [];
+                  text += matches.map(m => m.replace(/<[^>]+>/g, "")).join(" ") + "\n";
+                }
+                setConteudo(text.trim());
+              }
+            } catch (err) {
+              alert("Erro ao ler arquivo. Tente copiar o conteúdo manualmente.");
+              console.error(err);
+            }
           }} />
-          <button style={{ ...S.btnSecondary, padding: "8px 16px", fontSize: 13 }} onClick={() => fileRef.current.click()}>📎 Carregar arquivo .txt</button>
+          <button style={{ ...S.btnSecondary, padding: "8px 16px", fontSize: 13 }} onClick={() => fileRef.current.click()}>📎 Carregar arquivo (.txt, .pdf, .doc, .pptx)</button>
         </div>
         <label style={S.label}>Cole o conteúdo aqui</label>
         <textarea style={{ ...S.input, height: 200, resize: "vertical" }} value={conteudo} onChange={e => setConteudo(e.target.value)} placeholder="Cole o material do treinamento..." />
