@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import {
   seedDB, loginUser, getLojas,
   getTreinamentos, insertTreinamento, deleteTreinamento,
@@ -487,15 +488,15 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
               if (ext === "txt" || ext === "md") {
                 const text = await f.text(); setConteudo(text);
               } else if (ext === "pdf") {
-                const { getDocument, GlobalWorkerOptions } = await import("pdfjs-dist");
-                GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs`;
+                const pdfjsLib = await import("pdfjs-dist");
+                pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
                 const ab = await f.arrayBuffer();
-                const pdf = await getDocument({ data: ab }).promise;
+                const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
                 let text = "";
                 for (let i = 1; i <= pdf.numPages; i++) {
                   const page = await pdf.getPage(i);
-                  const content = await page.getTextContent();
-                  text += content.items.map(item => item.str).join(" ") + "\n";
+                  const pageContent = await page.getTextContent();
+                  text += pageContent.items.map(item => item.str).join(" ") + "\n";
                 }
                 setConteudo(text.trim());
               } else if (ext === "docx" || ext === "doc") {
@@ -560,13 +561,14 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
   if (step === "done") return (
     <div>
       <p style={S.pageTitle}>Questionário publicado! 🎉</p>
-      <p style={S.pageSubtitle}>Compartilhe o link abaixo no WhatsApp</p>
-      <div style={{ ...S.card, background: GREEN_LIGHT, border: `1.5px solid ${GREEN}` }}>
-        <p style={{ fontSize: 13, color: GREEN_DARK, fontWeight: 500, marginBottom: 8 }}>🔗 Link do questionário</p>
-        <div style={{ background: "#fff", borderRadius: 8, padding: "12px 16px", fontSize: 14, fontFamily: "monospace", color: "#333", wordBreak: "break-all", marginBottom: 12 }}>
-          {linkBase}?quiz={quizAtual?.link_token}
+      <p style={S.pageSubtitle}>Exiba o QR Code na tela — consultores escaneiam com o celular</p>
+      <div style={{ ...S.card, textAlign: "center" }}>
+        <p style={{ fontSize: 14, fontWeight: 600, color: GREEN_DARK, marginBottom: 20 }}>{quizAtual?.titulo}</p>
+        <div style={{ display: "inline-block", background: "#fff", padding: 20, borderRadius: 16, boxShadow: "0 4px 24px rgba(0,0,0,0.10)", marginBottom: 20 }}>
+          <QRCodeSVG value={`${linkBase}?quiz=${quizAtual?.link_token}`} size={260} fgColor={GREEN_DARK} bgColor="#fff" level="H" />
         </div>
-        <button style={{ ...S.btnPrimary, fontSize: 13 }} onClick={() => { navigator.clipboard?.writeText(`${linkBase}?quiz=${quizAtual?.link_token}`); alert("Link copiado!"); }}>
+        <p style={{ fontSize: 12, color: "#aaa", marginBottom: 16 }}>ou compartilhe o link diretamente</p>
+        <button style={{ ...S.btnPrimary, fontSize: 13, width: "100%" }} onClick={() => { navigator.clipboard?.writeText(`${linkBase}?quiz=${quizAtual?.link_token}`); alert("Link copiado!"); }}>
           📋 Copiar link
         </button>
       </div>
@@ -598,12 +600,16 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
       ))}
       {showLink && (
         <div style={S.modalBg} onClick={() => setShowLink(null)}>
-          <div style={S.modalCard} onClick={e => e.stopPropagation()}>
-            <p style={{ ...S.pageTitle, fontSize: 18, marginBottom: 16 }}>{showLink.titulo}</p>
-            <div style={{ background: GREEN_LIGHT, borderRadius: 8, padding: "12px 16px", fontSize: 13, fontFamily: "monospace", wordBreak: "break-all", marginBottom: 12 }}>
-              {linkBase}?quiz={showLink.link_token}
+          <div style={{ ...S.modalCard, textAlign: "center" }} onClick={e => e.stopPropagation()}>
+            <p style={{ ...S.pageTitle, fontSize: 18, marginBottom: 4 }}>{showLink.titulo}</p>
+            <p style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>Exiba na tela — consultores escaneiam com o celular</p>
+            <div style={{ display: "inline-block", background: "#fff", padding: 20, borderRadius: 16, boxShadow: "0 4px 24px rgba(0,0,0,0.10)", marginBottom: 20 }}>
+              <QRCodeSVG value={`${linkBase}?quiz=${showLink.link_token}`} size={240} fgColor={GREEN_DARK} bgColor="#fff" level="H" />
             </div>
-            <button style={{ ...S.btnPrimary, width: "100%" }} onClick={() => { navigator.clipboard?.writeText(`${linkBase}?quiz=${showLink.link_token}`); alert("Link copiado!"); }}>📋 Copiar link</button>
+            <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+              <button style={{ ...S.btnPrimary, flex: 1 }} onClick={() => { navigator.clipboard?.writeText(`${linkBase}?quiz=${showLink.link_token}`); alert("Link copiado!"); }}>📋 Copiar link</button>
+              <button style={{ ...S.btnSecondary, flex: 1 }} onClick={() => setShowLink(null)}>Fechar</button>
+            </div>
           </div>
         </div>
       )}
