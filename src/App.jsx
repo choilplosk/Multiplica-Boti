@@ -517,11 +517,28 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
                 const ab = await f.arrayBuffer();
                 const zip = await JSZip.loadAsync(ab);
                 let text = "";
-                const slideFiles = Object.keys(zip.files).filter(n => n.match(/ppt\/slides\/slide[0-9]+\.xml$/)).sort();
+                const slideFiles = Object.keys(zip.files)
+                  .filter(n => n.match(/ppt\/slides\/slide[0-9]+\.xml$/))
+                  .sort((a, b) => {
+                    const na = parseInt(a.match(/slide([0-9]+)/)[1]);
+                    const nb = parseInt(b.match(/slide([0-9]+)/)[1]);
+                    return na - nb;
+                  });
                 for (const name of slideFiles) {
                   const xml = await zip.files[name].async("string");
-                  const matches = xml.match(/<a:t>(.*?)<\/a:t>/g) || [];
-                  text += matches.map(m => m.replace(/<[^>]+>/g, "")).join(" ") + "\n";
+                  // Remove tags de imagem/mídia antes de extrair texto
+                  const xmlSemMidia = xml.replace(/<p:pic[\s\S]*?<\/p:pic>/g, "")
+                                         .replace(/<a:blip[^>]*\/>/g, "")
+                                         .replace(/<p:sp[^>]*>[\s\S]*?<\/p:sp>/g, (match) => {
+                                           // Mantém shapes de texto, remove os que não têm <a:t>
+                                           return match.includes("<a:t>") ? match : "";
+                                         });
+                  const matches = xmlSemMidia.match(/<a:t[^>]*>([\s\S]*?)<\/a:t>/g) || [];
+                  const slideText = matches
+                    .map(m => m.replace(/<[^>]+>/g, "").trim())
+                    .filter(t => t.length > 0)
+                    .join(" ");
+                  if (slideText) text += slideText + "\n";
                 }
                 setConteudo(text.trim());
               }
