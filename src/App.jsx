@@ -526,21 +526,88 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
                   });
                 for (const name of slideFiles) {
                   const xml = await zip.files[name].async("string");
-                  // Remove tags de imagem/mídia antes de extrair texto
-                  const xmlSemMidia = xml.replace(/<p:pic[\s\S]*?<\/p:pic>/g, "")
-                                         .replace(/<a:blip[^>]*\/>/g, "")
-                                         .replace(/<p:sp[^>]*>[\s\S]*?<\/p:sp>/g, (match) => {
-                                           // Mantém shapes de texto, remove os que não têm <a:t>
-                                           return match.includes("<a:t>") ? match : "";
-                                         });
-                  const matches = xmlSemMidia.match(/<a:t[^>]*>([\s\S]*?)<\/a:t>/g) || [];
+                  const matches = xml.match(/<a:t[^>]*>([\s\S]*?)<\/a:t>/g) || [];
                   const slideText = matches
                     .map(m => m.replace(/<[^>]+>/g, "").trim())
                     .filter(t => t.length > 0)
                     .join(" ");
                   if (slideText) text += slideText + "\n";
                 }
-                setConteudo(text.trim());
+
+                // Se não extraiu texto, os slides são imagens — usar IA para ler visualmente
+                if (!text.trim()) {
+                  setConteudo("🔍 Slides baseados em imagens detectados. Analisando com IA...");
+
+                  // Extrair imagens de mídia do PPTX
+                  const mediaFiles = Object.keys(zip.files)
+                    .filter(n => n.match(/ppt\/media\/image[0-9]+\.(png|jpg|jpeg)/i))
+                    .sort((a, b) => {
+                      const na = parseInt(a.match(/image([0-9]+)/)[1]);
+                      const nb = parseInt(b.match(/image([0-9]+)/)[1]);
+                      return na - nb;
+                    });
+
+                  // Mapear imagens por slide via arquivos .rels
+                  const slideImageMap = {};
+                  for (const sf of slideFiles) {
+                    const slideNum = parseInt(sf.match(/slide([0-9]+)/)[1]);
+                    const relsPath = sf.replace("slides/slide", "slides/_rels/slide").replace(".xml", ".xml.rels");
+                    if (zip.files[relsPath]) {
+                      const relsXml = await zip.files[relsPath].async("string");
+                      const imgRefs = [...relsXml.matchAll(/Target="\.\.\/media\/(image[0-9]+\.[a-z]+)"/gi)];
+                      if (imgRefs.length > 0) {
+                        slideImageMap[slideNum] = imgRefs.map(m => `ppt/media/${m[1]}`);
+                      }
+                    }
+                  }
+
+                  let aiText = "";
+                  let slideCount = 0;
+
+                  for (const [slideNumStr, imgPaths] of Object.entries(slideImageMap)) {
+                    slideCount++;
+                    setConteudo(`🔍 Analisando slide ${slideCount} de ${Object.keys(slideImageMap).length} com IA...`);
+
+                    // Usar primeira imagem do slide
+                    const imgPath = imgPaths[0];
+                    if (!zip.files[imgPath]) continue;
+
+                    const imgData = await zip.files[imgPath].async("base64");
+                    const ext2 = imgPath.split(".").pop().toLowerCase();
+                    const mediaType = ext2 === "jpg" || ext2 === "jpeg" ? "image/jpeg" : "image/png";
+
+                    try {
+                      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          model: "claude-sonnet-4-20250514",
+                          max_tokens: 1000,
+                          messages: [{
+                            role: "user",
+                            content: [
+                              {
+                                type: "image",
+                                source: { type: "base64", media_type: mediaType, data: imgData }
+                              },
+                              {
+                                type: "text",
+                                text: "Extraia todo o texto visível neste slide de apresentação. Retorne apenas o texto encontrado, sem comentários, sem formatação extra. Se não houver texto, retorne vazio."
+                              }
+                            ]
+                          }]
+                        })
+                      });
+                      const data = await resp.json();
+                      const slideText = data.content?.find(c => c.type === "text")?.text?.trim() || "";
+                      if (slideText) aiText += `Slide ${slideNumStr}:\n${slideText}\n\n`;
+                    } catch(e) { console.error("Erro IA slide", slideNumStr, e); }
+                  }
+
+                  text = aiText;
+                }
+
+                setConteudo(text.trim() || "Não foi possível extrair texto deste arquivo.");
               }
             } catch (err) {
               alert("Erro ao ler arquivo. Tente copiar o conteúdo manualmente.");
