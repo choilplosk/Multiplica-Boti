@@ -2,13 +2,6 @@ import { neon } from '@neondatabase/serverless';
 
 const sql = neon(import.meta.env.VITE_DATABASE_URL);
 
-// ─── SEED ─────────────────────────────────────────────────────────────────────
-export async function seedDB() {
-  try {
-    await sql`INSERT INTO lojas (nome) VALUES ('Shopping Plaza Niterói'),('Shopping Icaraí'),('Pátio Alcântara'),('Shopping Partage Norte'),('Loja Centro Niterói') ON CONFLICT DO NOTHING`;
-  } catch(e) { console.error("seed error", e); }
-}
-
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 export async function loginUser(login, senha) {
   try {
