@@ -577,29 +577,13 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
                     const mediaType = ext2 === "jpg" || ext2 === "jpeg" ? "image/jpeg" : "image/png";
 
                     try {
-                      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+                      const resp = await fetch("/api/analyze-slide", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          model: "claude-sonnet-4-20250514",
-                          max_tokens: 1000,
-                          messages: [{
-                            role: "user",
-                            content: [
-                              {
-                                type: "image",
-                                source: { type: "base64", media_type: mediaType, data: imgData }
-                              },
-                              {
-                                type: "text",
-                                text: "Extraia todo o texto visível neste slide de apresentação. Retorne apenas o texto encontrado, sem comentários, sem formatação extra. Se não houver texto, retorne vazio."
-                              }
-                            ]
-                          }]
-                        })
+                        body: JSON.stringify({ imageData: imgData, mediaType })
                       });
                       const data = await resp.json();
-                      const slideText = data.content?.find(c => c.type === "text")?.text?.trim() || "";
+                      const slideText = data.text?.trim() || "";
                       if (slideText) aiText += `Slide ${slideNumStr}:\n${slideText}\n\n`;
                     } catch(e) { console.error("Erro IA slide", slideNumStr, e); }
                   }
