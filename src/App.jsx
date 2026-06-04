@@ -291,8 +291,10 @@ function Dashboard() {
 
   // Filtro mês
   const resMes = allRespostas.filter(r => {
-    const d = new Date(String(r.respondido_em).slice(0,10));
-    return d.getMonth() === mesSel && d.getFullYear() === anoSel;
+    const raw = r.respondido_em;
+    const s = raw instanceof Date ? raw.toISOString().slice(0,10) : String(raw).slice(0,10);
+    const [y, m] = s.split("-").map(Number);
+    return (m - 1) === mesSel && y === anoSel;
   });
 
   // Métricas
@@ -347,7 +349,7 @@ function Dashboard() {
   for (let i = 5; i >= 0; i--) {
     const d = new Date(anoSel, mesSel - i, 1);
     const m = d.getMonth(); const a = d.getFullYear();
-    const resp = allRespostas.filter(r => { const rd = new Date(String(r.respondido_em).slice(0,10)); return rd.getMonth()===m && rd.getFullYear()===a; });
+    const resp = allRespostas.filter(r => { const raw2 = r.respondido_em; const s2 = raw2 instanceof Date ? raw2.toISOString().slice(0,10) : String(raw2).slice(0,10); const [ry,rm] = s2.split("-").map(Number); return (rm-1)===m && ry===a; });
     const media = resp.length > 0 ? (resp.reduce((s,x)=>s+Number(x.nota),0)/resp.length) : null;
     const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
     evolucao.push({ label: meses[m] + "/" + String(a).slice(2), media, total: resp.length });
@@ -356,7 +358,7 @@ function Dashboard() {
   const chartH = 120;
 
   const mesesNomes = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-  const anos = [...new Set(allRespostas.map(r => new Date(String(r.respondido_em).slice(0,10)).getFullYear()))].sort((a,b)=>b-a);
+  const anos = [...new Set(allRespostas.map(r => { const raw3 = r.respondido_em; const s3 = raw3 instanceof Date ? raw3.toISOString().slice(0,10) : String(raw3).slice(0,10); return Number(s3.split("-")[0]); }))].sort((a,b)=>b-a);
   if (!anos.includes(anoSel) && anos.length > 0) anos.unshift(anoSel);
 
   const cardStyle = { background:"#fff", borderRadius:12, border:"0.5px solid #e0ece8", padding:"20px 24px", marginBottom:16 };
