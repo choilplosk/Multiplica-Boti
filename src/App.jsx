@@ -484,6 +484,14 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
           <input ref={fileRef} type="file" accept=".txt,.md,.pdf,.doc,.docx,.ppt,.pptx" style={{ display: "none" }} onChange={async e => {
             const f = e.target.files[0]; if (!f) return;
             const ext = f.name.split(".").pop().toLowerCase();
+            const MAX_MB = 25;
+            if (f.size > MAX_MB * 1024 * 1024) {
+              alert(`Arquivo muito grande (${(f.size/1024/1024).toFixed(1)} MB). O limite é ${MAX_MB} MB. Tente compactar as imagens do arquivo.`);
+              e.target.value = "";
+              return;
+            }
+            setLoading(true);
+            setConteudo("⏳ Lendo arquivo, aguarde...");
             try {
               if (ext === "txt" || ext === "md") {
                 const text = await f.text(); setConteudo(text);
@@ -519,7 +527,10 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
               }
             } catch (err) {
               alert("Erro ao ler arquivo. Tente copiar o conteúdo manualmente.");
+              setConteudo("");
               console.error(err);
+            } finally {
+              setLoading(false);
             }
           }} />
           <button style={{ ...S.btnSecondary, padding: "8px 16px", fontSize: 13 }} onClick={() => fileRef.current.click()}>📎 Carregar arquivo (.txt, .pdf, .doc, .pptx)</button>
@@ -1101,3 +1112,4 @@ export default function App() {
     </>
   );
 }
+
