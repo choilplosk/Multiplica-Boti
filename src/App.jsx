@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import {
-  seedDB, loginUser, getLojas,
+  loginUser, getLojas,
   getTreinamentos, insertTreinamento, deleteTreinamento,
   getQuestionarios, getQuestionarioByToken, insertQuestionario, deleteQuestionario,
   getPerguntasByQuiz, insertPerguntas,
@@ -1166,7 +1166,7 @@ export default function App() {
   const urlParams = new URLSearchParams(window.location.search);
   const quizToken = urlParams.get("quiz");
 
-  useEffect(() => { seedDB().then(() => setReady(true)); }, []);
+  useEffect(() => { setReady(true); }, []);
 
   if (!ready) return <div style={S.loading}><div>🌿 Iniciando Multiplica Boti...</div></div>;
 
