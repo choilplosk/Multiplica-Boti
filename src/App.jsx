@@ -1340,8 +1340,33 @@ export default function App() {
 
   const urlParams = new URLSearchParams(window.location.search);
   const quizToken = urlParams.get("quiz");
+  const ssoToken = urlParams.get("sso");
 
-  useEffect(() => { setReady(true); }, []);
+  useEffect(() => {
+    if (ssoToken) {
+      async function validarSSO() {
+        try {
+          const res = await fetch("https://agregador-three.vercel.app/api/sso/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: ssoToken })
+          });
+          const data = await res.json();
+          if (data.user) {
+            setUser(data.user);
+            window.history.replaceState({}, "", window.location.pathname);
+          }
+        } catch (e) {
+          console.error("SSO error", e);
+        } finally {
+          setReady(true);
+        }
+      }
+      validarSSO();
+    } else {
+      setReady(true);
+    }
+  }, []);
 
   if (!ready) return <div style={S.loading}><div>🌿 Iniciando Multiplica Boti...</div></div>;
 
