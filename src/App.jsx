@@ -275,49 +275,238 @@ function Sidebar({ user, page, setPage, onLogout }) {
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 function Dashboard() {
-  const [dados, setDados] = useState({ quizzes: 0, respostas: 0, aprovados: 0, media: 0, treinamentos: 0, recentes: [] });
+  const [allRespostas, setAllRespostas] = useState([]);
+  const [quizzes, setQuizzes] = useState([]);
+  const [treinamentos, setTreinamentos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const now = new Date();
+  const [mesSel, setMesSel] = useState(now.getMonth());
+  const [anoSel, setAnoSel] = useState(now.getFullYear());
+
   useEffect(() => {
     Promise.all([getQuestionarios(), getRespostas(), getTreinamentos()]).then(([q, r, t]) => {
-      const aprov = r.filter(x => x.aprovado).length;
-      const media = r.length > 0 ? (r.reduce((s, x) => s + Number(x.nota), 0) / r.length).toFixed(1) : "—";
-      setDados({ quizzes: q.length, respostas: r.length, aprovados: aprov, media, treinamentos: t.length, recentes: r.slice(0, 5) });
-      setLoading(false);
+      setQuizzes(q); setAllRespostas(r); setTreinamentos(t); setLoading(false);
     });
   }, []);
+
+  // Filtro mês
+  const resMes = allRespostas.filter(r => {
+    const d = new Date(String(r.respondido_em).slice(0,10));
+    return d.getMonth() === mesSel && d.getFullYear() === anoSel;
+  });
+
+  // Métricas
+  function calcMetrics(resp) {
+    const aprov = resp.filter(x => x.aprovado).length;
+    const media = resp.length > 0 ? (resp.reduce((s,x) => s + Number(x.nota), 0) / resp.length).toFixed(1) : "—";
+    const taxaAprov = resp.length > 0 ? Math.round(aprov / resp.length * 100) + "%" : "—";
+    return { total: resp.length, aprov, media, taxaAprov };
+  }
+  const mMes = calcMetrics(resMes);
+  const mAcum = calcMetrics(allRespostas);
+
+  // Média por PDV no mês
+  const porPdvMes = {};
+  resMes.forEach(r => {
+    const loja = r.loja || "Não definido";
+    if (!porPdvMes[loja]) porPdvMes[loja] = [];
+    porPdvMes[loja].push(Number(r.nota));
+  });
+  const pdvRows = Object.entries(porPdvMes)
+    .map(([loja, notas]) => ({ loja, media: (notas.reduce((s,n)=>s+n,0)/notas.length).toFixed(1), total: notas.length }))
+    .sort((a,b) => b.media - a.media);
+
+  // Ranking consultoras no mês
+  const porConsultor = {};
+  resMes.forEach(r => {
+    const k = r.nome_consultor;
+    if (!porConsultor[k]) porConsultor[k] = { notas: [], aprov: 0 };
+    porConsultor[k].notas.push(Number(r.nota));
+    if (r.aprovado) porConsultor[k].aprov++;
+  });
+  const rankRows = Object.entries(porConsultor)
+    .map(([nome, d]) => ({ nome, media: (d.notas.reduce((s,n)=>s+n,0)/d.notas.length).toFixed(1), total: d.notas.length, aprov: d.aprov }))
+    .sort((a,b) => b.media - a.media)
+    .slice(0, 8);
+
+  // Taxa aprovação por quiz no mês
+  const porQuiz = {};
+  resMes.forEach(r => {
+    const k = r.questionario_id;
+    if (!porQuiz[k]) porQuiz[k] = { aprov: 0, total: 0 };
+    porQuiz[k].total++;
+    if (r.aprovado) porQuiz[k].aprov++;
+  });
+  const quizRows = Object.entries(porQuiz).map(([id, d]) => {
+    const q = quizzes.find(x => x.id === Number(id));
+    return { nome: q ? q.titulo : "Quiz #" + id, taxa: Math.round(d.aprov/d.total*100), aprov: d.aprov, total: d.total };
+  }).sort((a,b) => a.taxa - b.taxa);
+
+  // Evolução mensal (últimos 6 meses)
+  const evolucao = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(anoSel, mesSel - i, 1);
+    const m = d.getMonth(); const a = d.getFullYear();
+    const resp = allRespostas.filter(r => { const rd = new Date(String(r.respondido_em).slice(0,10)); return rd.getMonth()===m && rd.getFullYear()===a; });
+    const media = resp.length > 0 ? (resp.reduce((s,x)=>s+Number(x.nota),0)/resp.length) : null;
+    const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+    evolucao.push({ label: meses[m] + "/" + String(a).slice(2), media, total: resp.length });
+  }
+  const maxMedia = 10;
+  const chartH = 120;
+
+  const mesesNomes = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const anos = [...new Set(allRespostas.map(r => new Date(String(r.respondido_em).slice(0,10)).getFullYear()))].sort((a,b)=>b-a);
+  if (!anos.includes(anoSel) && anos.length > 0) anos.unshift(anoSel);
+
+  const cardStyle = { background:"#fff", borderRadius:12, border:"0.5px solid #e0ece8", padding:"20px 24px", marginBottom:16 };
+  const sectionTitle = { fontSize:15, fontWeight:500, color:"#1a3d2b", marginBottom:14, marginTop:0 };
+  const tagStyle = (ok) => ({ display:"inline-block", fontSize:11, fontWeight:500, padding:"2px 10px", borderRadius:20, background: ok ? "rgba(61,155,122,0.12)" : "rgba(192,57,43,0.1)", color: ok ? GREEN_DARK : "#c0392b" });
 
   if (loading) return <div style={S.loading}><div>⏳ Carregando...</div></div>;
   return (
     <div>
-      <p style={S.pageTitle}>Dashboard</p>
-      <p style={S.pageSubtitle}>Visão geral do programa</p>
-      <div style={S.metricGrid}>
-        {[["Questionários", dados.quizzes],["Avaliações respondidas", dados.respostas],["Aprovados", dados.aprovados],["Média geral", dados.media],["Treinamentos", dados.treinamentos]].map(([l, v]) => (
-          <div key={l} style={S.metricCard}><div style={S.metricNum}>{v}</div><div style={S.metricLabel}>{l}</div></div>
-        ))}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12, marginBottom:4 }}>
+        <div>
+          <p style={{ ...S.pageTitle, marginBottom:2 }}>Dashboard</p>
+          <p style={S.pageSubtitle}>Visão geral do programa</p>
+        </div>
+        <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+          <select value={mesSel} onChange={e => setMesSel(Number(e.target.value))} style={{ border:"0.5px solid #cde5db", borderRadius:8, padding:"6px 12px", fontSize:13, color:"#1a3d2b", background:"#fff", cursor:"pointer" }}>
+            {mesesNomes.map((m,i) => <option key={i} value={i}>{m}</option>)}
+          </select>
+          <select value={anoSel} onChange={e => setAnoSel(Number(e.target.value))} style={{ border:"0.5px solid #cde5db", borderRadius:8, padding:"6px 12px", fontSize:13, color:"#1a3d2b", background:"#fff", cursor:"pointer" }}>
+            {(anos.length > 0 ? anos : [anoSel]).map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </div>
       </div>
-      {dados.recentes.length > 0 && (
-        <div style={S.card}>
-          <p style={S.cardTitle}>Últimas avaliações</p>
+
+      {/* Métricas lado a lado: mês vs acumulado */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:16 }}>
+        <div style={{ ...cardStyle, marginBottom:0 }}>
+          <p style={{ ...sectionTitle, marginBottom:12 }}>📅 {mesesNomes[mesSel]} {anoSel}</p>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+            {[["Avaliações",mMes.total],["Aprovados",mMes.aprov],["Média",mMes.media],["Taxa aprov.",mMes.taxaAprov]].map(([l,v]) => (
+              <div key={l} style={{ background:GREEN_LIGHT, borderRadius:10, padding:"12px 14px", textAlign:"center" }}>
+                <div style={{ fontSize:22, fontWeight:500, color:GREEN, lineHeight:1 }}>{v}</div>
+                <div style={{ fontSize:11, color:"#666", marginTop:4 }}>{l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ ...cardStyle, marginBottom:0 }}>
+          <p style={{ ...sectionTitle, marginBottom:12 }}>📈 Acumulado</p>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+            {[["Avaliações",mAcum.total],["Aprovados",mAcum.aprov],["Média",mAcum.media],["Taxa aprov.",mAcum.taxaAprov]].map(([l,v]) => (
+              <div key={l} style={{ background:"#f0f5f3", borderRadius:10, padding:"12px 14px", textAlign:"center" }}>
+                <div style={{ fontSize:22, fontWeight:500, color:"#2a6b54", lineHeight:1 }}>{v}</div>
+                <div style={{ fontSize:11, color:"#666", marginTop:4 }}>{l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Evolução mensal */}
+      <div style={cardStyle}>
+        <p style={sectionTitle}>📉 Evolução da média (últimos 6 meses)</p>
+        {evolucao.some(e => e.media !== null) ? (
+          <div style={{ display:"flex", alignItems:"flex-end", gap:8, height: chartH + 32 }}>
+            {evolucao.map((e, i) => {
+              const h = e.media !== null ? Math.max(8, (e.media / maxMedia) * chartH) : 0;
+              const isSelected = i === 5;
+              return (
+                <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
+                  <div style={{ fontSize:11, fontWeight:500, color: e.media !== null ? GREEN_DARK : "#ccc" }}>
+                    {e.media !== null ? e.media : "—"}
+                  </div>
+                  <div style={{ width:"100%", height: h, background: isSelected ? GREEN : GREEN_LIGHT, borderRadius:"6px 6px 0 0", border: isSelected ? "none" : "0.5px solid #cde5db", transition:"height 0.3s" }} />
+                  <div style={{ fontSize:10, color:"#888", textAlign:"center" }}>{e.label}</div>
+                  <div style={{ fontSize:10, color:"#aaa" }}>{e.total > 0 ? e.total + " aval." : ""}</div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p style={{ color:"#aaa", fontSize:13 }}>Nenhum dado disponível.</p>
+        )}
+      </div>
+
+      {/* Média por PDV */}
+      {pdvRows.length > 0 && (
+        <div style={cardStyle}>
+          <p style={sectionTitle}>🏪 Média por PDV — {mesesNomes[mesSel]}</p>
           <table style={S.table}>
-            <thead><tr><th style={S.th}>Consultor</th><th style={S.th}>Loja</th><th style={S.th}>Nota</th><th style={S.th}>Resultado</th><th style={S.th}>Data</th></tr></thead>
+            <thead><tr><th style={S.th}>PDV</th><th style={S.th}>Avaliações</th><th style={S.th}>Média</th><th style={S.th}>Desempenho</th></tr></thead>
             <tbody>
-              {dados.recentes.map(r => (
-                <tr key={r.id}>
-                  <td style={S.td}>{r.nome_consultor}</td>
-                  <td style={S.td}>{r.loja || "—"}</td>
-                  <td style={S.td}><strong>{fmtNota(r.nota)}</strong></td>
-                  <td style={S.td}><span style={S.badge(r.aprovado)}>{r.aprovado ? "Aprovado" : "Reforço"}</span></td>
-                  <td style={S.td}>{fmtDate(r.respondido_em)}</td>
+              {pdvRows.map(row => (
+                <tr key={row.loja}>
+                  <td style={S.td}>{row.loja}</td>
+                  <td style={S.td}>{row.total}</td>
+                  <td style={S.td}><strong style={{ color: Number(row.media) >= 8 ? GREEN : "#c0392b" }}>{row.media}</strong></td>
+                  <td style={S.td}>
+                    <div style={{ background:"#f0f5f3", borderRadius:20, height:8, width:"100%", minWidth:80 }}>
+                      <div style={{ background: Number(row.media) >= 8 ? GREEN : "#e67e22", borderRadius:20, height:8, width: (Number(row.media)/10*100) + "%" }} />
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
-      {dados.recentes.length === 0 && (
-        <div style={{ ...S.card, textAlign: "center", padding: 40, color: "#aaa" }}>
-          <p style={{ fontSize: 32, marginBottom: 8 }}>📊</p>
+
+      {/* Ranking consultoras */}
+      {rankRows.length > 0 && (
+        <div style={cardStyle}>
+          <p style={sectionTitle}>🏆 Ranking de consultoras — {mesesNomes[mesSel]}</p>
+          <table style={S.table}>
+            <thead><tr><th style={S.th}>#</th><th style={S.th}>Consultora</th><th style={S.th}>Avaliações</th><th style={S.th}>Aprovadas</th><th style={S.th}>Média</th></tr></thead>
+            <tbody>
+              {rankRows.map((row, i) => (
+                <tr key={row.nome}>
+                  <td style={S.td}><span style={{ fontWeight:600, color: i===0?"#f39c12": i===1?"#95a5a6": i===2?"#cd7f32":"#999" }}>{i===0?"🥇":i===1?"🥈":i===2?"🥉":"#"+(i+1)}</span></td>
+                  <td style={S.td}>{row.nome}</td>
+                  <td style={S.td}>{row.total}</td>
+                  <td style={S.td}><span style={tagStyle(row.aprov === row.total)}>{row.aprov}/{row.total}</span></td>
+                  <td style={S.td}><strong style={{ color: Number(row.media) >= 8 ? GREEN : "#c0392b" }}>{row.media}</strong></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Taxa aprovação por quiz */}
+      {quizRows.length > 0 && (
+        <div style={cardStyle}>
+          <p style={sectionTitle}>📝 Taxa de aprovação por quiz — {mesesNomes[mesSel]}</p>
+          <table style={S.table}>
+            <thead><tr><th style={S.th}>Quiz</th><th style={S.th}>Responderam</th><th style={S.th}>Aprovados</th><th style={S.th}>Taxa</th></tr></thead>
+            <tbody>
+              {quizRows.map(row => (
+                <tr key={row.nome}>
+                  <td style={S.td}>{row.nome}</td>
+                  <td style={S.td}>{row.total}</td>
+                  <td style={S.td}>{row.aprov}</td>
+                  <td style={S.td}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <div style={{ background:"#f0f5f3", borderRadius:20, height:8, flex:1, minWidth:60 }}>
+                        <div style={{ background: row.taxa >= 80 ? GREEN : row.taxa >= 50 ? "#e67e22" : "#c0392b", borderRadius:20, height:8, width: row.taxa + "%" }} />
+                      </div>
+                      <span style={{ fontSize:12, fontWeight:500, color: row.taxa >= 80 ? GREEN_DARK : "#c0392b", minWidth:32 }}>{row.taxa}%</span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {allRespostas.length === 0 && (
+        <div style={{ ...cardStyle, textAlign:"center", padding:40, color:"#aaa" }}>
+          <p style={{ fontSize:32, marginBottom:8 }}>📊</p>
           <p>Nenhuma avaliação respondida ainda.</p>
         </div>
       )}
