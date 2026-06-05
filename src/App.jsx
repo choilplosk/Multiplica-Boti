@@ -722,8 +722,7 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
                     .map(m => m.replace(/<[^>]+>/g, "").trim())
                     .filter(t => t.length > 0)
                     .join(" ");
-                  if (slideText) text += slideText + "
-";
+                  if (slideText) text += slideText + "";
                 }
 
                 // Se não extraiu texto, os slides são imagens — usar IA para ler visualmente
@@ -983,12 +982,7 @@ function Resultados() {
               });
               const sep = "─────────────────";
               const textoWhats = "*Relatório Multiplica Boti*
-📝 " + quizNome + "
-" + sep + "
-" + linhasWhats.join("
-" + sep + "
-") + "
-" + sep + "
+📝 " + quizNome + "" + sep + "" + linhasWhats.join("" + sep + "") + "" + sep + "
 *Total geral: " + filtradas.length + " avaliações · " + filtradas.filter(r=>r.aprovado).length + " aprovados*";
               return (
                 <>
