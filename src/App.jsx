@@ -695,8 +695,7 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
                 for (let i = 1; i <= pdf.numPages; i++) {
                   const page = await pdf.getPage(i);
                   const pageContent = await page.getTextContent();
-                  text += pageContent.items.map(item => item.str).join(" ") + "
-";
+                  text += pageContent.items.map(item => item.str).join(" ") + "";
                 }
                 setConteudo(text.trim());
               } else if (ext === "docx" || ext === "doc") {
