@@ -1349,7 +1349,7 @@ export default function App() {
     if (ssoToken) {
       async function validarSSO() {
         try {
-          const res = await fetch("https://boticarioniteroi.com.br/api/sso/verify", {
+          const res = await fetch("https://agregador-boti.vercel.app/api/sso/verify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ token: ssoToken })
