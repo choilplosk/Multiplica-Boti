@@ -976,14 +976,10 @@ function Resultados() {
               const linhasWhats = linhas.map(([loja, d]) => {
                 const media = (d.notas.reduce((s,n)=>s+n,0)/d.notas.length).toFixed(1);
                 const pct = Math.round(d.aprovados/d.total*100);
-                return "*" + loja + "*
-✅ Aprovados: " + d.aprovados + "/" + d.total + " (" + pct + "%)
-📈 Média: " + media;
+                return "*" + loja + "*\n✅ Aprovados: " + d.aprovados + "/" + d.total + " (" + pct + "%)\n📈 Média: " + media;
               });
               const sep = "─────────────────";
-              const textoWhats = "*Relatório Multiplica Boti*
-📝 " + quizNome + "" + sep + "" + linhasWhats.join("" + sep + "") + "" + sep + "
-*Total geral: " + filtradas.length + " avaliações · " + filtradas.filter(r=>r.aprovado).length + " aprovados*";
+              const textoWhats = "*Relatório Multiplica Boti*\n📝 " + quizNome + "\n" + sep + "\n" + linhasWhats.join("\n" + sep + "\n") + "\n" + sep + "\n*Total geral: " + filtradas.length + " avaliações · " + filtradas.filter(r=>r.aprovado).length + " aprovados*";
               return (
                 <>
                   {linhas.map(([loja, d]) => {
