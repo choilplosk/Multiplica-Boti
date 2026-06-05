@@ -695,7 +695,8 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
                 for (let i = 1; i <= pdf.numPages; i++) {
                   const page = await pdf.getPage(i);
                   const pageContent = await page.getTextContent();
-                  text += pageContent.items.map(item => item.str).join(" ") + "\n";
+                  text += pageContent.items.map(item => item.str).join(" ") + "
+";
                 }
                 setConteudo(text.trim());
               } else if (ext === "docx" || ext === "doc") {
@@ -722,7 +723,8 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
                     .map(m => m.replace(/<[^>]+>/g, "").trim())
                     .filter(t => t.length > 0)
                     .join(" ");
-                  if (slideText) text += slideText + "\n";
+                  if (slideText) text += slideText + "
+";
                 }
 
                 // Se não extraiu texto, os slides são imagens — usar IA para ler visualmente
@@ -775,7 +777,10 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
                       });
                       const data = await resp.json();
                       const slideText = data.text?.trim() || "";
-                      if (slideText) aiText += `Slide ${slideNumStr}:\n${slideText}\n\n`;
+                      if (slideText) aiText += `Slide ${slideNumStr}:
+${slideText}
+
+`;
                     } catch(e) { console.error("Erro IA slide", slideNumStr, e); }
                   }
 
@@ -973,10 +978,19 @@ function Resultados() {
               const linhasWhats = linhas.map(([loja, d]) => {
                 const media = (d.notas.reduce((s,n)=>s+n,0)/d.notas.length).toFixed(1);
                 const pct = Math.round(d.aprovados/d.total*100);
-                return "*" + loja + "*\n✅ Aprovados: " + d.aprovados + "/" + d.total + " (" + pct + "%)\n📈 Média: " + media;
+                return "*" + loja + "*
+✅ Aprovados: " + d.aprovados + "/" + d.total + " (" + pct + "%)
+📈 Média: " + media;
               });
               const sep = "─────────────────";
-              const textoWhats = "*Relatório Multiplica Boti*\n📝 " + quizNome + "\n" + sep + "\n" + linhasWhats.join("\n" + sep + "\n") + "\n" + sep + "\n*Total geral: " + filtradas.length + " avaliações · " + filtradas.filter(r=>r.aprovado).length + " aprovados*";
+              const textoWhats = "*Relatório Multiplica Boti*
+📝 " + quizNome + "
+" + sep + "
+" + linhasWhats.join("
+" + sep + "
+") + "
+" + sep + "
+*Total geral: " + filtradas.length + " avaliações · " + filtradas.filter(r=>r.aprovado).length + " aprovados*";
               return (
                 <>
                   {linhas.map(([loja, d]) => {
@@ -1346,7 +1360,7 @@ export default function App() {
     if (ssoToken) {
       async function validarSSO() {
         try {
-          const res = await fetch("https://agregador-nzkmn0iww-choil-plosk-s-projects.vercel.app/api/sso/verify", {
+          const res = await fetch("https://boticarioniteroi.com.br/api/sso/verify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ token: ssoToken })
@@ -1396,5 +1410,3 @@ export default function App() {
     </>
   );
 }
-
-
