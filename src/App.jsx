@@ -1346,7 +1346,7 @@ export default function App() {
     if (ssoToken) {
       async function validarSSO() {
         try {
-          const res = await fetch("https://agregador-three.vercel.app/api/sso/verify", {
+          const res = await fetch("https://agregador-nzkmn0iww-choil-plosk-s-projects.vercel.app/api/sso/verify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ token: ssoToken })
@@ -1396,4 +1396,5 @@ export default function App() {
     </>
   );
 }
+
 
