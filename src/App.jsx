@@ -675,11 +675,49 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
           <input ref={fileRef} type="file" accept=".txt,.md,.pdf,.doc,.docx,.ppt,.pptx" style={{ display: "none" }} onChange={async e => {
             const f = e.target.files[0]; if (!f) return;
             const ext = f.name.split(".").pop().toLowerCase();
-            const MAX_MB = 25;
-            if (f.size > MAX_MB * 1024 * 1024) {
-              alert(`Arquivo muito grande (${(f.size/1024/1024).toFixed(1)} MB). O limite é ${MAX_MB} MB. Tente compactar as imagens do arquivo.`);
+            const MAX_MB = 50;
+            const fileMB = f.size / 1024 / 1024;
+
+            if (fileMB > MAX_MB) {
+              // Regra 3: acima do limite máximo — pedir ajuda ao Choil
+              alert(
+                `⚠️ Arquivo muito grande: ${fileMB.toFixed(1)} MB\n\n` +
+                `O limite máximo é ${MAX_MB} MB. Mesmo após compressão, este arquivo pode ser um caso especial.\n\n` +
+                `Por favor, procure o Choil para analisarmos juntos o melhor caminho.`
+              );
               e.target.value = "";
               return;
+            }
+
+            if (fileMB > 25) {
+              // Regra 2: entre 25–50 MB — orientar compressão por formato
+              let instrucao = "";
+              if (ext === "pptx" || ext === "ppt") {
+                instrucao =
+                  `📦 Arquivo grande detectado: ${fileMB.toFixed(1)} MB\n\n` +
+                  `Dica: Para reduzir o tamanho no PowerPoint:\n` +
+                  `1. Clique em qualquer imagem do arquivo\n` +
+                  `2. Vá em "Formato da Imagem" → "Compactar Imagens"\n` +
+                  `3. Marque "Aplicar a todas as imagens"\n` +
+                  `4. Escolha resolução "Web (150 ppi)" ou "E-mail (96 ppi)"\n` +
+                  `5. Salve como novo arquivo e suba a versão comprimida.\n\n` +
+                  `O arquivo será carregado assim mesmo, mas pode demorar mais.`;
+              } else if (ext === "pdf") {
+                instrucao =
+                  `📦 Arquivo grande detectado: ${fileMB.toFixed(1)} MB\n\n` +
+                  `Dica: Para reduzir o tamanho do PDF, acesse:\n` +
+                  `🔗 ilovepdf.com → "Comprimir PDF"\n` +
+                  `ou\n` +
+                  `🔗 smallpdf.com → "Compress PDF"\n\n` +
+                  `Arraste o arquivo, baixe a versão comprimida e suba ela aqui.\n\n` +
+                  `O arquivo será carregado assim mesmo, mas pode demorar mais.`;
+              } else {
+                instrucao =
+                  `📦 Arquivo grande detectado: ${fileMB.toFixed(1)} MB\n\n` +
+                  `O carregamento pode demorar alguns instantes. Se tiver problemas, tente reduzir o tamanho do arquivo antes de subir.`;
+              }
+              alert(instrucao);
+              // Continua o processamento normalmente
             }
             setLoading(true);
             setConteudo("⏳ Lendo arquivo, aguarde...");
