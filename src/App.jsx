@@ -1352,11 +1352,12 @@ export default function App() {
           const res = await fetch("https://agregador-boti.vercel.app/api/sso/verify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: ssoToken })
+            body: JSON.stringify({ token: ssoToken, sistema: "multiplica_boti" })
           });
           const data = await res.json();
-          if (data.user) {
-            setUser(data.user);
+          if (data.valid && data.user) {
+            // Usar perfil do token SSO (definido no Agregador) em vez do perfil do banco local
+            setUser({ ...data.user, perfil: data.perfil || data.user.perfil || "leitor" });
             window.history.replaceState({}, "", window.location.pathname);
           }
         } catch (e) {
