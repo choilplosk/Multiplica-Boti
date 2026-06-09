@@ -735,7 +735,36 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
                   const pageContent = await page.getTextContent();
                   text += pageContent.items.map(item => item.str).join(" ") + "";
                 }
-                setConteudo(text.trim());
+
+                // Se nao extraiu texto, o PDF e baseado em imagens — usar IA para ler visualmente
+                if (!text.trim()) {
+                  setConteudo("🔍 PDF baseado em imagens detectado. Analisando com IA...");
+                  let aiText = "";
+                  for (let i = 1; i <= pdf.numPages; i++) {
+                    setConteudo(`🔍 Analisando página ${i} de ${pdf.numPages} com IA...`);
+                    const page = await pdf.getPage(i);
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    const canvas = document.createElement("canvas");
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    const ctx = canvas.getContext("2d");
+                    await page.render({ canvasContext: ctx, viewport }).promise;
+                    const imageData = canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
+                    try {
+                      const resp = await fetch("/api/analyze-slide", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ imageData, mediaType: "image/jpeg" })
+                      });
+                      const data = await resp.json();
+                      const pageText = data.text?.trim() || "";
+                      if (pageText) aiText += `Página ${i}:\n${pageText}\n\n`;
+                    } catch(e) { console.error("Erro IA pagina", i, e); }
+                  }
+                  text = aiText;
+                }
+
+                setConteudo(text.trim() || "Não foi possível extrair texto deste arquivo.");
               } else if (ext === "docx" || ext === "doc") {
                 const mammoth = await import("mammoth");
                 const ab = await f.arrayBuffer();
