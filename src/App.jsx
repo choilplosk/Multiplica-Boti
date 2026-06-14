@@ -731,19 +731,20 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
                 const ab = await f.arrayBuffer();
                 const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
                 let text = "";
+                let paginasComIA = 0;
+                setConteudo(`⏳ Lendo ${pdf.numPages} páginas...`);
                 for (let i = 1; i <= pdf.numPages; i++) {
                   const page = await pdf.getPage(i);
                   const pageContent = await page.getTextContent();
-                  text += pageContent.items.map(item => item.str).join(" ") + "\n";
-                }
+                  const pageText = pageContent.items.map(item => item.str).join(" ").trim();
 
-                // Se nao extraiu texto, o PDF e baseado em imagens — usar IA para ler visualmente
-                if (!text.trim()) {
-                  setConteudo("🔍 PDF baseado em imagens detectado. Analisando com IA...");
-                  let aiText = "";
-                  for (let i = 1; i <= pdf.numPages; i++) {
+                  if (pageText.length > 20) {
+                    // Página tem texto nativo — usa direto
+                    text += `Página ${i}:\n${pageText}\n\n`;
+                  } else {
+                    // Página sem texto — renderiza e manda para IA
+                    paginasComIA++;
                     setConteudo(`🔍 Analisando página ${i} de ${pdf.numPages} com IA...`);
-                    const page = await pdf.getPage(i);
                     const viewport = page.getViewport({ scale: 1.5 });
                     const canvas = document.createElement("canvas");
                     canvas.width = viewport.width;
@@ -758,13 +759,15 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
                         body: JSON.stringify({ imageData, mediaType: "image/jpeg" })
                       });
                       const data = await resp.json();
-                      const pageText = data.text?.trim() || "";
-                      if (pageText) aiText += `Página ${i}:\n${pageText}\n\n`;
+                      const aiText = data.text?.trim() || "";
+                      if (aiText) text += `Página ${i}:\n${aiText}\n\n`;
                     } catch(e) { console.error("Erro IA pagina", i, e); }
                   }
-                  text = aiText;
                 }
-
+                if (paginasComIA > 0) {
+                  setConteudo(`✅ Concluído: ${pdf.numPages - paginasComIA} páginas com texto, ${paginasComIA} analisadas com IA.`);
+                  await new Promise(r => setTimeout(r, 1500));
+                }
                 setConteudo(text.trim() || "Não foi possível extrair texto deste arquivo.");
               } else if (ext === "docx" || ext === "doc") {
                 const mammoth = await import("mammoth");
