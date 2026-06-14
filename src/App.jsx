@@ -733,7 +733,7 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
                 for (let i = 1; i <= pdf.numPages; i++) {
                   const page = await pdf.getPage(i);
                   const pageContent = await page.getTextContent();
-                  text += pageContent.items.map(item => item.str).join(" ") + "";
+                  text += pageContent.items.map(item => item.str).join(" ") + "\n";
                 }
 
                 // Se nao extraiu texto, o PDF e baseado em imagens — usar IA para ler visualmente
@@ -751,7 +751,7 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
                     await page.render({ canvasContext: ctx, viewport }).promise;
                     const imageData = canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
                     try {
-                      const resp = await fetch("/api/analyze-slide", {
+                      const resp = await fetch("https://multiplica-boti.vercel.app/api/analyze-slide", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ imageData, mediaType: "image/jpeg" })
@@ -835,7 +835,7 @@ Para verdadeiro/falso: opcao_c e opcao_d = "".`;
                     const mediaType = ext2 === "jpg" || ext2 === "jpeg" ? "image/jpeg" : "image/png";
 
                     try {
-                      const resp = await fetch("/api/analyze-slide", {
+                      const resp = await fetch("https://multiplica-boti.vercel.app/api/analyze-slide", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ imageData: imgData, mediaType })
