@@ -614,8 +614,9 @@ Cubra o conteúdo inteiro. Perguntas difíceis que exijam compreensão real, nã
 CONTEÚDO:
 ${conteudo.slice(0, 8000)}
 
+IMPORTANTE: Distribua as respostas corretas de forma VARIADA entre as opções A, B, C e D. Não repita a mesma letra como resposta correta em perguntas consecutivas.
 Retorne APENAS JSON válido, sem markdown:
-{"perguntas":[{"ordem":1,"tipo":"multipla_escolha","enunciado":"...","opcao_a":"...","opcao_b":"...","opcao_c":"...","opcao_d":"...","resposta_correta":"b"}]}
+{"perguntas":[{"ordem":1,"tipo":"multipla_escolha","enunciado":"...","opcao_a":"...","opcao_b":"...","opcao_c":"...","opcao_d":"...","resposta_correta":"a"}]}
 Para verdadeiro/falso: opcao_c e opcao_d = "".`;
     try {
       const raw = await callClaude(prompt);
